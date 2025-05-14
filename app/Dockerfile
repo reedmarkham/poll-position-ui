@@ -1,13 +1,31 @@
-# Stage 1: Build app with Vite
-FROM node:18 AS builder
+# Stage 1: Build the app
+FROM node:20 AS builder
+
 WORKDIR /app
-COPY . .
+
+# Install dependencies
+COPY package*.json ./
 RUN npm install
+
+# Copy source code
+COPY . .
+
+# Build the Vite app
 RUN npm run build
 
-# Stage 2: Serve with `serve`
-FROM node:18-alpine
-RUN npm install -g serve
+# Stage 2: Serve the app using `serve`
+FROM node:20 AS runner
+
 WORKDIR /app
-COPY --from=builder /app/dist .
-CMD ["serve", "-s", ".", "-l", "80"]
+
+# Install the static file server
+RUN npm install -g serve
+
+# Copy built assets from builder stage
+COPY --from=builder /app/dist ./dist
+
+# Expose the port `serve` will use
+EXPOSE 3000
+
+# Serve the built site
+CMD ["serve", "-s", "dist", "-l", "3000"]
