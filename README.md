@@ -35,9 +35,9 @@ Ensure these secrets are configured under **Settings > Secrets and variables > A
 
 ## CI/CD
 
-This app is built and deployed using GitHub Actions and ECS Fargate. On every commit to the `main` branch, the following actions are triggered:
-
-1. Install dependencies
-2. Build the frontend application
-3. Build and push the Docker image to Amazon ECR
-4. Deploy the UI container to ECS using the task definition
+On commits to `main`:
+* GitHub Actions checks out the latest source code and authenticates with AWS using secrets stored in the repository.
+* The app’s Docker image is built locally from the app/ directory. This ensures the Vite-based frontend compiles successfully before deploying.
+* AWS CDK is used to define and deploy the infrastructure:
+    * Builds the Docker image (again) as a DockerImageAsset during deployment.
+    * Deploys the image as a Fargate service behind an Application Load Balancer (ALB).
