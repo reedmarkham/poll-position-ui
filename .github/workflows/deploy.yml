@@ -3,10 +3,10 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - main # Trigger on commits to the main branch
+      - main
   pull_request:
     branches:
-      - main # Trigger on pull requests to the main branch
+      - main
 
 jobs:
   deploy:
@@ -17,32 +17,46 @@ jobs:
       ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 
     steps:
-    # Step 1: Checkout the repository
-    - name: Checkout Code
-      uses: actions/checkout@v3
+      # Step 1: Checkout the repository
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-    # Step 2: Configure AWS credentials
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+      # Step 2: Configure AWS credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-    # Step 3: Set up Node.js
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '16'
+      # Step 3: Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
 
-    # Step 4: Install dependencies
-    - name: Install Dependencies
-      run: npm install
+      # Step 4: Validate Docker build (make sure Vite build succeeds)
+      - name: Build Docker image
+        run: docker build -t poll-position-ui ./app
 
-    # Step 5: Bootstrap CDK (if needed)
-    - name: Bootstrap CDK
-      run: npx cdk bootstrap aws://${ACCOUNT_ID}/${AWS_REGION}
+      # Optional: Run container and test it
+      # - name: Smoke test container output
+      #   run: |
+      #     docker run -d -p 8080:80 --name test-ui poll-position-ui
+      #     sleep 3
+      #     curl -s -o /dev/null -w "%{http_code}" http://localhost:8080 | grep 200
 
-    # Step 6: Deploy CDK Stack
-    - name: Deploy CDK Stack
-      run: npx cdk deploy --require-approval never
+      # Step 5: Install CDK dependencies
+      - name: Install CDK Dependencies
+        working-directory: infra
+        run: npm install
+
+      # Step 6: Bootstrap CDK
+      - name: Bootstrap CDK
+        working-directory: infra
+        run: npx cdk bootstrap aws://${{ env.ACCOUNT_ID }}/${{ env.AWS_REGION }}
+
+      # Step 7: Deploy CDK Stack
+      - name: Deploy CDK Stack
+        working-directory: infra
+        run: npx cdk deploy --require-approval never
