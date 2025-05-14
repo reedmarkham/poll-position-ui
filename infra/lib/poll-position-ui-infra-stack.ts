@@ -34,6 +34,9 @@ export class PollPositionUIInfraStack extends cdk.Stack {
       portMappings: [{ containerPort: 80 }],
       memoryLimitMiB: 512,
       cpu: 256,
+      logging: ecs.LogDrivers.awsLogs({
+        streamPrefix: 'PollPositionUI',
+      }),
     });
 
     // Fargate Service
