@@ -1,8 +1,8 @@
-# 🖥️ poll-position-ui 🏈
+# 🏈 poll-position-ui
 
 This project deploys a UI to visualize data from [`poll-position`](`https://www.github.com/reedmarkham/poll-position) by connecting directly to its S3 bucket.
 
-## 📁 Folder Structure
+## Folder Structure
 
 ```
 poll-position-ui/
@@ -21,7 +21,7 @@ poll-position-ui/
 └── README.md                       # Project documentation
 ```
 
-## 🔧 Pre-requisites
+## Pre-requisites
 
 Ensure these secrets are configured under **Settings > Secrets and variables > Actions > repository secrets** in your GitHub repository:
 
@@ -33,7 +33,7 @@ Ensure these secrets are configured under **Settings > Secrets and variables > A
 | `AWS_SECRET_ACCESS_KEY` | AWS secret access key                           |
 | `S3_BUCKET`  | AWS S3 bucket containing data |
 
-## 🚀 CI/CD
+## CI/CD
 
 This app is built and deployed using GitHub Actions and ECS Fargate. On every commit to the `main` branch, the following actions are triggered:
 
