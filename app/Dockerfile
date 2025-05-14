@@ -1,20 +1,13 @@
-# Use a Node.js base image
-FROM node:18-alpine
-
-# Set the working directory
+# Stage 1: Build app with Vite
+FROM node:18 AS builder
 WORKDIR /app
-
-# Copy package.json and package-lock.json
-COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy the rest of the application code
 COPY . .
+RUN npm install
+RUN npm run build
 
-# Expose the application port
-EXPOSE 8080
-
-# Start the application
-CMD ["npm", "start"]
+# Stage 2: Serve with `serve`
+FROM node:18-alpine
+RUN npm install -g serve
+WORKDIR /app
+COPY --from=builder /app/dist .
+CMD ["serve", "-s", ".", "-l", "80"]
