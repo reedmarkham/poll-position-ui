@@ -21,16 +21,7 @@ poll-position-ui/
 └── README.md                       # Project documentation
 ```
 
-## 🚀 Deployment Instructions
-
-This app is built and deployed using GitHub Actions and ECS Fargate. On every commit to the `main` branch, the following actions are triggered:
-
-1. Install dependencies
-2. Build the frontend application
-3. Build and push the Docker image to Amazon ECR
-4. Deploy the UI container to ECS using the task definition
-
-### 🔧 GitHub Secrets Required
+## 🔧 Pre-requisites
 
 Ensure these secrets are configured under **Settings > Secrets and variables > Actions > repository secrets** in your GitHub repository:
 
@@ -41,3 +32,12 @@ Ensure these secrets are configured under **Settings > Secrets and variables > A
 | `AWS_ACCESS_KEY_ID`   | AWS access key ID                                 |
 | `AWS_SECRET_ACCESS_KEY` | AWS secret access key                           |
 | `S3_BUCKET`  | AWS S3 bucket containing data |
+
+## 🚀 CI/CD
+
+This app is built and deployed using GitHub Actions and ECS Fargate. On every commit to the `main` branch, the following actions are triggered:
+
+1. Install dependencies
+2. Build the frontend application
+3. Build and push the Docker image to Amazon ECR
+4. Deploy the UI container to ECS using the task definition
