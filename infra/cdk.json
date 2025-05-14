@@ -1,5 +1,5 @@
 {
-  "app": "npx ts-node --prefer-ts-exts bin/poll-position-infra.ts",
+  "app": "npx ts-node bin/poll-position-ui-infra.ts",
   "watch": {
     "include": [
       "**"
