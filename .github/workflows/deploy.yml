@@ -2,11 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   deploy:
@@ -15,48 +13,85 @@ jobs:
     env:
       AWS_REGION: ${{ secrets.AWS_REGION }}
       ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      S3_BUCKET: ${{ secrets.S3_BUCKET }}
+      AWS_IAM_ARN: ${{ secrets.AWS_IAM_ARN }}
+      TOOLKIT_STACK: CDKToolkit-poll-position
+      STACK_NAME: PollPositionUIStack
+      BOOTSTRAP_QUALIFIER: pollpstn
 
     steps:
-      # Step 1: Checkout the repository
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Step 2: Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      # Step 3: Set up Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
 
-      # Step 4: Validate Docker build (make sure Vite build succeeds)
-      - name: Build Docker image
-        run: docker build -t poll-position-ui ./app
-
-      # Optional: Run container and test it
-      # - name: Smoke test container output
-      #   run: |
-      #     docker run -d -p 8080:80 --name test-ui poll-position-ui
-      #     sleep 3
-      #     curl -s -o /dev/null -w "%{http_code}" http://localhost:8080 | grep 200
-
-      # Step 5: Install CDK dependencies
-      - name: Install CDK Dependencies
-        working-directory: infra
+      - name: Install Dependencies
         run: npm install
 
-      # Step 6: Bootstrap CDK
-      - name: Bootstrap CDK
-        working-directory: infra
-        run: npx cdk bootstrap aws://${{ env.ACCOUNT_ID }}/${{ env.AWS_REGION }}
+      - name: Authenticate Docker with ECR
+        run: |
+          aws ecr get-login-password --region $AWS_REGION | \
+          docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
 
-      # Step 7: Deploy CDK Stack
+      - name: Ensure ECR Repository Exists
+        run: |
+          aws ecr describe-repositories --repository-names poll-position-ui --region $AWS_REGION || \
+          aws ecr create-repository --repository-name poll-position-ui --region $AWS_REGION
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t poll-position-ui -f app/Dockerfile app
+          docker tag poll-position-ui:latest ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/poll-position-ui:latest
+          docker push ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/poll-position-ui:latest
+
+      - name: List CDK Stacks (for debug)
+        run: npx cdk ls
+
+      - name: Validate CDK Bootstrap Qualifier
+        run: |
+          ACTUAL_QUALIFIER=$(aws cloudformation describe-stacks \
+            --stack-name $TOOLKIT_STACK \
+            --region $AWS_REGION \
+            --query "Stacks[0].Parameters[?ParameterKey=='Qualifier'].ParameterValue" \
+            --output text)
+
+          echo "✅ Found bootstrap qualifier: $ACTUAL_QUALIFIER"
+
+          if [ "$ACTUAL_QUALIFIER" != "$BOOTSTRAP_QUALIFIER" ]; then
+            echo "❌ Mismatch: expected '$BOOTSTRAP_QUALIFIER' but found '$ACTUAL_QUALIFIER'"
+            exit 1
+          fi
+
+      - name: Validate CDK App Configuration
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq
+          ACTUAL=$(jq -r '.app' cdk.json)
+          EXPECTED="npx ts-node --prefer-ts-exts bin/poll-position-ui.ts"
+
+          if [[ "$ACTUAL" != "$EXPECTED" ]]; then
+            echo "❌ Error: cdk.json 'app' is misconfigured."
+            echo "Expected: $EXPECTED"
+            echo "Found:    $ACTUAL"
+            exit 1
+          else
+            echo "✅ cdk.json app configuration is correct."
+          fi
+
       - name: Deploy CDK Stack
-        working-directory: infra
-        run: npx cdk deploy --require-approval never
+        run: |
+          npx cdk deploy \
+            --toolkit-stack-name $TOOLKIT_STACK \
+            --context bootstrapQualifier=$BOOTSTRAP_QUALIFIER \
+            $STACK_NAME \
+            --outputs-file cdk-outputs.json \
+            --require-approval never

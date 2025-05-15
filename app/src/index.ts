@@ -1,12 +1,8 @@
 import { renderVisualization } from './components/visualization';
 import { loadLatestPollData } from './utils/loadS3';
+import type { RawPollRow } from './components/visualization'; // reuse the type for clarity
 
-interface WeekRanking {
-  week: string;
-  polls: { ranks: any[] }[];
-}
-
-// Create the container first to ensure it exists before rendering
+// Create the container first
 const container = document.createElement('div');
 container.id = 'visualization-container';
 document.body.appendChild(container);
@@ -15,13 +11,12 @@ async function main() {
   try {
     const data = await loadLatestPollData();
 
-    const transformedData: WeekRanking[] = (data as any[]).map((weekRanking: any): WeekRanking => ({
-      ...weekRanking,
-      week: weekRanking.week.toString(),
-      polls: weekRanking.polls ?? [],
-    }));
+    // Sanity check the type
+    if (!Array.isArray(data)) {
+      throw new Error('Loaded data is not an array of rows.');
+    }
 
-    renderVisualization(transformedData, 'visualization-container');
+    renderVisualization(data as RawPollRow[], 'visualization-container');
   } catch (error) {
     console.error('❌ Visualization load failed:', error);
   }

@@ -6,9 +6,27 @@ const BUCKET_NAME = process.env.S3_BUCKET;
 const PREFIX = 'cleansed/poll_';
 const SUFFIX = '.json';
 
-let cachedPollData: any | null = null;
+let cachedPollData: any[] | null = null;
 
-export async function loadLatestPollData(): Promise<any> {
+function reshapeColumnarData(data: any): any[] {
+  if (!Array.isArray(data.columns)) return data;
+
+  const columns = data.columns;
+  const numRows = columns[0].values.length;
+  const reshaped: any[] = [];
+
+  for (let i = 0; i < numRows; i++) {
+    const row: Record<string, any> = {};
+    for (const col of columns) {
+      row[col.name] = col.values[i];
+    }
+    reshaped.push(row);
+  }
+
+  return reshaped;
+}
+
+export async function loadLatestPollData(): Promise<any[]> {
   if (cachedPollData) {
     return cachedPollData;
   }
@@ -57,13 +75,11 @@ export async function loadLatestPollData(): Promise<any> {
     throw new Error('Failed to read contents of the latest poll file.');
   }
 
-  cachedPollData = JSON.parse(bodyContents);
+  const rawData = JSON.parse(bodyContents);
+  cachedPollData = reshapeColumnarData(rawData);
 
   // Print a sample for debugging
-  const sample = Array.isArray(cachedPollData)
-    ? cachedPollData.slice(0, 3)
-    : Object.fromEntries(Object.entries(cachedPollData).slice(0, 3));
-
+  const sample = cachedPollData.slice(0, 3);
   console.log('📊 Sample poll data:\n', JSON.stringify(sample, null, 2));
 
   return cachedPollData;
