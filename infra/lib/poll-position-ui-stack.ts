@@ -25,6 +25,7 @@ export class PollPositionUIStack extends cdk.Stack {
 
     const imageAsset = new ecr_assets.DockerImageAsset(this, 'PollPositionUIImage', {
       directory: '../app', // adjust as needed
+      
     });
 
     const fargateService = new ecs_patterns.ApplicationLoadBalancedFargateService(this, 'PollPositionUIService', {
@@ -36,6 +37,9 @@ export class PollPositionUIStack extends cdk.Stack {
       taskImageOptions: {
         image: ecs.ContainerImage.fromDockerImageAsset(imageAsset),
         containerPort: 3000, // Ensure port alignment
+        environment: {
+          S3_BUCKET: process.env.S3_BUCKET ?? '', // Passed from GitHub Actions
+        },
       },
     });
 
