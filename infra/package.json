@@ -1,8 +1,8 @@
 {
-  "name": "poll-position-infra",
+  "name": "poll-position-ui",
   "version": "0.1.0",
   "bin": {
-    "poll-position-infra": "bin/poll-position-infra.js"
+    "poll-position-ui": "bin/poll-position-ui.ts"
   },
   "scripts": {
     "build": "tsc",
