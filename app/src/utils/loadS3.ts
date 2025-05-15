@@ -3,6 +3,7 @@ import { S3Client, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/clien
 const s3 = new S3Client({ region: 'us-east-1' });
 
 const BUCKET_NAME = import.meta.env.VITE_S3_BUCKET;
+console.log('S3_BUCKET:', BUCKET_NAME);
 const PREFIX = 'cleansed/poll_';
 const SUFFIX = '.json';
 
