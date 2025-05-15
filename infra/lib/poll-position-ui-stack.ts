@@ -38,7 +38,7 @@ export class PollPositionUIStack extends cdk.Stack {
         image: ecs.ContainerImage.fromDockerImageAsset(imageAsset),
         containerPort: 3000, // Ensure port alignment
         environment: {
-          S3_BUCKET: process.env.S3_BUCKET ?? '', // Passed from GitHub Actions
+          VITE_S3_BUCKET: process.env.VITE_S3_BUCKET ?? '', // Passed from GitHub Actions
         },
       },
     });
