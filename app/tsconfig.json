@@ -10,7 +10,8 @@
     "baseUrl": "./src",
     "paths": {
       "*": ["./*"]
-    }
+    },
+    "lib": ["dom", "es2019"]
   },
   "include": ["./src/**/*"],
   "exclude": ["node_modules"]

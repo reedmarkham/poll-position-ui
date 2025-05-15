@@ -1,90 +1,70 @@
-import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
-import { Readable } from "stream";
+import { S3Client, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
+
+const s3 = new S3Client({ region: 'us-east-1' });
 
 const BUCKET_NAME = process.env.S3_BUCKET;
-if (!BUCKET_NAME) {
-  throw new Error("S3_BUCKET environment variable is not defined");
-}
+const PREFIX = 'cleansed/poll_';
+const SUFFIX = '.json';
 
-const s3 = new S3Client({ region: "us-east-1" });
+let cachedPollData: any | null = null;
 
-interface S3Object {
-    Key?: string;
-    LastModified?: Date;
-    [key: string]: any;
+export async function loadLatestPollData(): Promise<any> {
+  if (cachedPollData) {
+    return cachedPollData;
   }
 
-async function getLatestKey(prefix: string): Promise<string> {
-  const response = await s3.send(
-    new ListObjectsV2Command({
-      Bucket: BUCKET_NAME,
-      Prefix: prefix,
-    })
-  );
-
-  if (!response.Contents || response.Contents.length === 0) {
-    throw new Error(`No files found for prefix: ${prefix}`);
+  if (!BUCKET_NAME) {
+    throw new Error('S3_BUCKET environment variable is not set.');
   }
 
-  const latest = (response.Contents as S3Object[]).sort((a: S3Object, b: S3Object) =>
-    (b.LastModified?.getTime() || 0) - (a.LastModified?.getTime() || 0)
-  )[0];
-
-  return latest.Key!;
-}
-
-async function fetchJsonFromS3(key: string): Promise<any> {
-  const { Body } = await s3.send(
-    new GetObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: key,
-    })
-  );
-
-  const stream = Body as Readable;
-  const data = await new Promise<any>((resolve, reject) => {
-    let body = "";
-    stream.setEncoding("utf-8");
-    stream.on("data", (chunk) => (body += chunk));
-    stream.on("end", () => resolve(JSON.parse(body)));
-    stream.on("error", reject);
+  const listCommand = new ListObjectsV2Command({
+    Bucket: BUCKET_NAME,
+    Prefix: PREFIX,
   });
 
-  return data;
-}
+  const listResponse = await s3.send(listCommand);
+  const objects = listResponse.Contents;
 
-function joinTeamsIntoRankings(rankings: any, teams: any[]): any {
-  const teamMap = new Map<string, any>();
-  for (const team of teams) {
-    teamMap.set(team.school, {
-      logos: team.logos,
-      color: team.color,
-      alternateColor: team.alternateColor,
-    });
+  if (!objects || objects.length === 0) {
+    throw new Error('No poll_*.json files found in the bucket.');
   }
 
-  for (const poll of rankings.polls || []) {
-    for (const rank of poll.ranks || []) {
-      const teamInfo = teamMap.get(rank.school);
-      if (teamInfo) {
-        Object.assign(rank, teamInfo);
-      }
-    }
+  const pollFiles = objects.filter(obj => obj.Key?.endsWith(SUFFIX));
+
+  if (pollFiles.length === 0) {
+    throw new Error('No poll_*.json files found in the cleansed/ directory.');
   }
 
-  return rankings;
-}
+  const latestFile = pollFiles.sort((a, b) => {
+    const dateA = a.LastModified?.getTime() || 0;
+    const dateB = b.LastModified?.getTime() || 0;
+    return dateB - dateA;
+  })[0];
 
-export async function loadPollWithTeams() {
-  const [rankingsKey, teamsKey] = await Promise.all([
-    getLatestKey("rankings_"),
-    getLatestKey("teams_"),
-  ]);
+  if (!latestFile.Key) {
+    throw new Error('Latest file key is undefined.');
+  }
 
-  const [rankingsJson, teamsJson] = await Promise.all([
-    fetchJsonFromS3(rankingsKey),
-    fetchJsonFromS3(teamsKey),
-  ]);
+  const getCommand = new GetObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: latestFile.Key,
+  });
 
-  return joinTeamsIntoRankings(rankingsJson, teamsJson);
+  const getResponse = await s3.send(getCommand);
+  const bodyContents = await getResponse.Body?.transformToString();
+
+  if (!bodyContents) {
+    throw new Error('Failed to read contents of the latest poll file.');
+  }
+
+  cachedPollData = JSON.parse(bodyContents);
+
+  // Print a sample for debugging
+  const sample = Array.isArray(cachedPollData)
+    ? cachedPollData.slice(0, 3)
+    : Object.fromEntries(Object.entries(cachedPollData).slice(0, 3));
+
+  console.log('📊 Sample poll data:\n', JSON.stringify(sample, null, 2));
+
+  return cachedPollData;
 }
