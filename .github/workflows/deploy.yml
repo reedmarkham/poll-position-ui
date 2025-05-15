@@ -35,8 +35,15 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Dependencies
+      # --- Frontend ---
+      - name: Install frontend dependencies
+        working-directory: app
         run: npm install
+
+      - name: Build frontend Docker image
+        working-directory: app
+        run: |
+          docker build -t poll-position-ui -f Dockerfile .
 
       - name: Authenticate Docker with ECR
         run: |
@@ -48,13 +55,18 @@ jobs:
           aws ecr describe-repositories --repository-names poll-position-ui --region $AWS_REGION || \
           aws ecr create-repository --repository-name poll-position-ui --region $AWS_REGION
 
-      - name: Build and Push Docker Image
+      - name: Push frontend Docker image to ECR
         run: |
-          docker build -t poll-position-ui -f app/Dockerfile app
           docker tag poll-position-ui:latest ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/poll-position-ui:latest
           docker push ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/poll-position-ui:latest
 
+      # --- Infra ---
+      - name: Install CDK dependencies
+        working-directory: infra
+        run: npm install
+
       - name: List CDK Stacks (for debug)
+        working-directory: infra
         run: npx cdk ls
 
       - name: Validate CDK Bootstrap Qualifier
@@ -73,6 +85,7 @@ jobs:
           fi
 
       - name: Validate CDK App Configuration
+        working-directory: infra
         run: |
           sudo apt-get update && sudo apt-get install -y jq
           ACTUAL=$(jq -r '.app' cdk.json)
@@ -88,6 +101,7 @@ jobs:
           fi
 
       - name: Deploy CDK Stack
+        working-directory: infra
         run: |
           npx cdk deploy \
             --toolkit-stack-name $TOOLKIT_STACK \
