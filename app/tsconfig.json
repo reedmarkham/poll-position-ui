@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
-    "target": "es6",
-    "module": "es6",
+    "target": "es2020",
+    "module": "es2020",
     "moduleResolution": "node",
+    "lib": ["dom", "es2020"],
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
@@ -10,8 +11,7 @@
     "baseUrl": "./src",
     "paths": {
       "*": ["./*"]
-    },
-    "lib": ["dom", "es2019"]
+    }
   },
   "include": ["./src/**/*"],
   "exclude": ["node_modules"]
