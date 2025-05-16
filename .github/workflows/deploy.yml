@@ -49,6 +49,7 @@ jobs:
         working-directory: app
         run: |
           docker build \
+            --no-cache \
             --build-arg VITE_S3_BUCKET=$VITE_S3_BUCKET \
             -t $ECR_REPO \
             -f Dockerfile .
