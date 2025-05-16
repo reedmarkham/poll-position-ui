@@ -26,7 +26,6 @@ interface FlattenedTeamRank {
   rank: number;
   school: string;
   color: string;
-  logo: string;
 }
 
 export function renderVisualization(data: RawPollRow[], containerId: string): void {
@@ -51,9 +50,8 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
   d3.select(`#${containerId}`).selectAll('*').remove();
 
   const margin = { top: 20, right: 30, bottom: 50, left: 50 };
-  const width = 800 - margin.left - margin.right;
-  const height = 400 - margin.top - margin.bottom;
-
+  const width = 640 - margin.left - margin.right;
+  const height = 320 - margin.top - margin.bottom;
   const outerWidth = width + margin.left + margin.right;
   const outerHeight = height + margin.top + margin.bottom;
 
@@ -67,18 +65,16 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  const flattenedData: FlattenedTeamRank[] = data
-    .flatMap((week: WeekRanking) =>
-      week.polls.flatMap((poll) =>
-        poll.ranks.map((team): FlattenedTeamRank => ({
-          week: +week.week,
-          rank: team.rank,
-          school: team.school,
-          color: team.color || '#ccc',
-          logo: team.logos?.[0] ?? '',
-        }))
-      )
-    );
+  const flattenedData = data.flatMap(week =>
+    week.polls.flatMap(poll =>
+      poll.ranks.map(team => ({
+        week: +week.week,
+        rank: team.rank,
+        school: team.school,
+        color: team.color || '#ccc',
+      }))
+    )
+  );
 
   const finalWeek = d3.max(flattenedData, d => d.week) ?? 0;
   const topSchools = flattenedData
@@ -88,14 +84,12 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
     .map(d => d.school);
 
   const grouped = d3.group(flattenedData, d => d.school);
-
-  const allTeams = Array.from(grouped.entries())
-    .map(([school, ranks]) => ({
-      school,
-      ranks: ranks.sort((a, b) => a.week - b.week),
-      color: ranks[0].color,
-      isTop: topSchools.includes(school),
-    }));
+  const allTeams = Array.from(grouped.entries()).map(([school, ranks]) => ({
+    school,
+    ranks: ranks.sort((a, b) => a.week - b.week),
+    color: ranks[0].color,
+    isTop: topSchools.includes(school),
+  }));
 
   const xScale = d3
     .scaleLinear()
@@ -157,33 +151,22 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
     .attr('class', 'team-point')
     .attr('transform', d => `translate(${xScale(d.week)},${yScale(d.rank)})`);
 
-  g.append('image')
-    .attr('href', d => d.logo)
-    .attr('x', -10)
-    .attr('y', -10)
-    .attr('width', 20)
-    .attr('height', 20)
-    .style('opacity', d => topSchools.includes(d.school) ? 0.95 : 0.2)
-    .on('mouseover', function (event, d) {
-      if (!topSchools.includes(d.school)) return;
+  g.append('circle')
+    .attr('r', 8)
+    .attr('fill', d => topSchools.includes(d.school) ? d.color : '#444')
+    .attr('opacity', d => topSchools.includes(d.school) ? 0.95 : 0.3)
+    .on('mouseover', function () {
       d3.select(this)
         .raise()
         .transition()
         .duration(150)
-        .attr('width', 26)
-        .attr('height', 26)
-        .attr('x', -13)
-        .attr('y', -13);
+        .attr('r', 10);
     })
-    .on('mouseout', function (event, d) {
-      if (!topSchools.includes(d.school)) return;
+    .on('mouseout', function () {
       d3.select(this)
         .transition()
         .duration(150)
-        .attr('width', 20)
-        .attr('height', 20)
-        .attr('x', -10)
-        .attr('y', -10);
+        .attr('r', 8);
     });
 
   g.append('text')
