@@ -184,8 +184,8 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
 
   const resizeObserver = new ResizeObserver(entries => {
     for (const entry of entries) {
-      const width = entry.contentRect.width;
-      const height = width * 0.6;
+      const width = Math.min(entry.contentRect.width, 1200);
+      const height = width * 0.65;
       draw(width, height);
     }
   });
