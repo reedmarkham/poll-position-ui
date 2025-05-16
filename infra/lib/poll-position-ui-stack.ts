@@ -4,6 +4,7 @@ import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecs_patterns from 'aws-cdk-lib/aws-ecs-patterns';
+import * as iam from 'aws-cdk-lib/aws-iam';
 
 export class PollPositionUIStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -40,6 +41,10 @@ export class PollPositionUIStack extends cdk.Stack {
         logDriver: ecs.LogDrivers.awsLogs({ streamPrefix: 'PollPositionUI' }),
       },
     });
+
+    fargateService.taskDefinition.obtainExecutionRole().addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonEC2ContainerRegistryReadOnly')
+    );
 
     fargateService.targetGroup.configureHealthCheck({
       path: '/',
