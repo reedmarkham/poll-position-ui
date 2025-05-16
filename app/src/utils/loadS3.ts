@@ -20,11 +20,13 @@ export async function loadLatestPollData(): Promise<any[]> {
       throw new Error('Expected poll data to be an array.');
     }
 
-    cachedPollData = data;
+    // ✅ Only include AP Top 25 poll results
+    const apTop25 = data.filter((d) => d.poll === "AP Top 25");
 
-    // Print a sample for debugging
+    cachedPollData = apTop25;
+
     const sample = cachedPollData.slice(0, 3);
-    console.log('📊 Sample poll data:\n', JSON.stringify(sample, null, 2));
+    console.log('📊 Sample AP Top 25 poll data:\n', JSON.stringify(sample, null, 2));
 
     return cachedPollData;
   } catch (error) {
@@ -32,3 +34,4 @@ export async function loadLatestPollData(): Promise<any[]> {
     throw error;
   }
 }
+
