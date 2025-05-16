@@ -198,8 +198,12 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
 
   const resizeObserver = new ResizeObserver(entries => {
     for (const entry of entries) {
-      const width = entry.contentRect.width;
-      const height = width * 0.6;
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
+
+      const width = Math.min(screenWidth * 0.9, 1400);
+      const height = Math.min(screenHeight * 0.75, width * 0.65);
+
       draw(width, height);
     }
   });
