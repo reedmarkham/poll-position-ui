@@ -45,7 +45,7 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
   function draw(width: number, height: number) {
     g.selectAll('*').remove();
 
-    const margin = { top: 40, right: 90, bottom: 50, left: 50 }; // Increased right margin
+    const margin = { top: 40, right: 140, bottom: 50, left: 50 }; 
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
@@ -123,7 +123,7 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
       .attr('transform', d => `translate(${xScale(d.week)},${yScale(d.rank ?? yMax)})`);
 
     // Final rank deltas
-    const deltaX = innerWidth + 5;
+    const deltaX = innerWidth + 20;
     // Clear old delta labels first
     g.selectAll('.delta-label').remove();
 
