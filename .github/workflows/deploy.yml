@@ -20,6 +20,7 @@ jobs:
       BOOTSTRAP_QUALIFIER: pollpstn
       ECR_REPO: poll-position-ui
       IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/poll-position-ui:latest
+      BUILD_TIMESTAMP: ${{ github.run_id }}-${{ github.run_number }}
 
     steps:
       - name: Checkout Code

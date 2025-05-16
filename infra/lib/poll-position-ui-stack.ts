@@ -36,7 +36,7 @@ export class PollPositionUIStack extends cdk.Stack {
         containerPort: 3000,
         environment: {
           VITE_API_BASE_URL: process.env.VITE_API_BASE_URL ?? '',
-          BUILD_TIMESTAMP: new Date().toISOString(), // 🔁 force new task def
+          BUILD_TIMESTAMP: process.env.BUILD_TIMESTAMP ?? '',
         },
         logDriver: ecs.LogDrivers.awsLogs({ streamPrefix: 'PollPositionUI' }),
       },
