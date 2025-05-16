@@ -32,136 +32,144 @@ export function renderVisualization(data: RawPollRow[], containerId: string): vo
 }
 
 function renderGroupedVisualization(data: { week: string, ranks: any[] }[], containerId: string): void {
-  d3.select(`#${containerId}`).selectAll('*').remove();
+  const container = d3.select(`#${containerId}`);
+  container.selectAll('*').remove();
 
-  const margin = { top: 20, right: 30, bottom: 50, left: 50 };
-  const width = 640 - margin.left - margin.right;
-  const height = 320 - margin.top - margin.bottom;
-  const outerWidth = width + margin.left + margin.right;
-  const outerHeight = height + margin.top + margin.bottom;
-
-  const svg = d3
-    .select(`#${containerId}`)
+  const svg = container
     .append('svg')
-    .attr('viewBox', `0 0 ${outerWidth} ${outerHeight}`)
-    .attr('preserveAspectRatio', 'xMidYMid meet')
     .style('width', '100%')
-    .style('height', 'auto')
-    .append('g')
-    .attr('transform', `translate(${margin.left},${margin.top})`);
+    .style('height', '100%')
+    .attr('preserveAspectRatio', 'xMidYMid meet');
 
-  const flattenedData = data.flatMap(week =>
-    week.ranks.map(team => ({
-      week: +week.week,
-      rank: team.rank,
-      school: team.school,
-      color: team.color || '#ccc',
-    }))
-  );
+  const g = svg.append('g');
 
-  const finalWeek = d3.max(flattenedData, d => d.week) ?? 0;
-  const topSchools = flattenedData
-    .filter(d => d.week === finalWeek)
-    .sort((a, b) => a.rank - b.rank)
-    .slice(0, 12)
-    .map(d => d.school);
+  function draw(width: number, height: number) {
+    g.selectAll('*').remove(); // Clear redraw
 
-  const grouped = d3.group(flattenedData, d => d.school);
-  const allTeams = Array.from(grouped.entries()).map(([school, ranks]) => ({
-    school,
-    ranks: ranks.sort((a, b) => a.week - b.week),
-    color: ranks[0].color,
-    isTop: topSchools.includes(school),
-  }));
+    const margin = { top: 20, right: 30, bottom: 50, left: 50 };
+    const innerWidth = width - margin.left - margin.right;
+    const innerHeight = height - margin.top - margin.bottom;
 
-  const xScale = d3
-    .scaleLinear()
-    .domain(d3.extent(flattenedData, d => d.week) as [number, number])
-    .range([0, width]);
+    svg.attr('viewBox', `0 0 ${width} ${height}`);
+    g.attr('transform', `translate(${margin.left},${margin.top})`);
 
-  const yMax = d3.max(flattenedData, d => d.rank) || 25;
-  const yScale = d3.scaleLinear().domain([1, yMax]).range([0, height]);
+    const flattenedData = data.flatMap(week =>
+      week.ranks.map(team => ({
+        week: +week.week,
+        rank: team.rank,
+        school: team.school,
+        color: team.color || '#ccc',
+      }))
+    );
 
-  svg.append('g')
-    .attr('transform', `translate(0,${height})`)
-    .call(d3.axisBottom(xScale).ticks(data.length).tickFormat(d3.format('d')));
+    const finalWeek = d3.max(flattenedData, d => d.week) ?? 0;
+    const topSchools = flattenedData
+      .filter(d => d.week === finalWeek)
+      .sort((a, b) => a.rank - b.rank)
+      .slice(0, 12)
+      .map(d => d.school);
 
-  svg.append('text')
-    .attr('x', width / 2)
-    .attr('y', height + 40)
-    .attr('text-anchor', 'middle')
-    .attr('font-size', '12px')
-    .attr('fill', '#ccc')
-    .text('Week');
+    const grouped = d3.group(flattenedData, d => d.school);
+    const allTeams = Array.from(grouped.entries()).map(([school, ranks]) => ({
+      school,
+      ranks: ranks.sort((a, b) => a.week - b.week),
+      color: ranks[0].color,
+      isTop: topSchools.includes(school),
+    }));
 
-  svg.append('text')
-    .attr('transform', 'rotate(-90)')
-    .attr('x', -height / 2)
-    .attr('y', -margin.left + 15)
-    .attr('text-anchor', 'middle')
-    .attr('font-size', '12px')
-    .text('Rank');
+    const xScale = d3
+      .scaleLinear()
+      .domain(d3.extent(flattenedData, d => d.week) as [number, number])
+      .range([0, innerWidth]);
 
-  const lineGenerator = d3.line<FlattenedTeamRank>()
-    .defined(d => d.rank !== undefined && d.rank !== null)
-    .x(d => xScale(d.week))
-    .y(d => yScale(d.rank));
+    const yMax = d3.max(flattenedData, d => d.rank) || 25;
+    const yScale = d3.scaleLinear().domain([1, yMax]).range([0, innerHeight]);
 
-  svg.selectAll('.team-line')
-    .data(allTeams)
-    .enter()
-    .append('path')
-    .attr('class', 'team-line')
-    .attr('d', d => lineGenerator(d.ranks)!)
-    .attr('fill', 'none')
-    .attr('stroke', d => d.isTop ? d.color : '#444')
-    .attr('stroke-width', d => d.isTop ? 2 : 1)
-    .attr('opacity', d => d.isTop ? 0.7 : 0.3)
-    .attr('stroke-dasharray', function () {
-      const length = (this as SVGPathElement).getTotalLength();
-      return `${length},${length}`;
-    })
-    .attr('stroke-dashoffset', function () {
-      return (this as SVGPathElement).getTotalLength();
-    })
-    .transition()
-    .duration(1000)
-    .attr('stroke-dashoffset', 0);
+    g.append('g')
+      .attr('transform', `translate(0,${innerHeight})`)
+      .call(d3.axisBottom(xScale).ticks(data.length).tickFormat(d3.format('d')));
 
-  const g = svg.selectAll('.team-point')
-    .data(flattenedData)
-    .enter()
-    .append('g')
-    .attr('class', 'team-point')
-    .attr('transform', d => `translate(${xScale(d.week)},${yScale(d.rank ?? yMax)})`);
+    g.append('text')
+      .attr('x', innerWidth / 2)
+      .attr('y', innerHeight + 40)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '12px')
+      .attr('fill', '#ccc')
+      .text('Week');
 
-  g.append('circle')
-    .attr('r', 8)
-    .attr('fill', d => topSchools.includes(d.school) ? d.color : '#444')
-    .style('opacity', d => topSchools.includes(d.school) ? 0.95 : 0.3)
-    .on('mouseover', function () {
-      d3.select(this)
-        .raise()
-        .transition()
-        .duration(150)
-        .attr('r', 10);
-    })
-    .on('mouseout', function () {
-      d3.select(this)
-        .transition()
-        .duration(150)
-        .attr('r', 8);
-    });
+    g.append('text')
+      .attr('transform', 'rotate(-90)')
+      .attr('x', -innerHeight / 2)
+      .attr('y', -margin.left + 15)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '12px')
+      .text('Rank');
 
-  g.append('text')
-    .attr('x', 0)
-    .attr('y', 4)
-    .attr('text-anchor', 'middle')
-    .attr('font-size', '10px')
-    .attr('font-weight', 'bold')
-    .attr('fill', '#fff')
-    .text(d => d.rank ?? '');
+    const lineGenerator = d3.line<FlattenedTeamRank>()
+      .defined(d => d.rank !== undefined && d.rank !== null)
+      .x(d => xScale(d.week))
+      .y(d => yScale(d.rank));
 
-  g.append('title')
-    .text(d => `${d.school}: Rank ${d.rank}`);
+    g.selectAll('.team-line')
+      .data(allTeams)
+      .enter()
+      .append('path')
+      .attr('class', 'team-line')
+      .attr('d', d => lineGenerator(d.ranks)!)
+      .attr('fill', 'none')
+      .attr('stroke', d => d.isTop ? d.color : '#444')
+      .attr('stroke-width', d => d.isTop ? 2 : 1)
+      .attr('opacity', d => d.isTop ? 0.7 : 0.3);
+
+    const points = g.selectAll('.team-point')
+      .data(flattenedData)
+      .enter()
+      .append('g')
+      .attr('class', 'team-point')
+      .attr('transform', d => `translate(${xScale(d.week)},${yScale(d.rank ?? yMax)})`);
+
+    points.append('circle')
+      .attr('r', 8)
+      .attr('fill', d => topSchools.includes(d.school) ? d.color : '#444')
+      .style('opacity', d => topSchools.includes(d.school) ? 0.95 : 0.3)
+      .on('mouseover', function () {
+        d3.select(this)
+          .raise()
+          .transition()
+          .duration(150)
+          .attr('r', 10);
+      })
+      .on('mouseout', function () {
+        d3.select(this)
+          .transition()
+          .duration(150)
+          .attr('r', 8);
+      });
+
+    points.append('text')
+      .attr('x', 0)
+      .attr('y', 4)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '10px')
+      .attr('font-weight', 'bold')
+      .attr('fill', '#fff')
+      .text(d => d.rank ?? '');
+
+    points.append('title')
+      .text(d => `${d.school}: Rank ${d.rank}`);
+  }
+
+  // Use ResizeObserver to watch container size
+  const resizeObserver = new ResizeObserver(entries => {
+    for (const entry of entries) {
+      const { width, height } = entry.contentRect;
+      draw(width, height);
+    }
+  });
+
+  const domNode = container.node() as HTMLElement;
+  if (domNode) {
+    resizeObserver.observe(domNode);
+  }
 }
+
