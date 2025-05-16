@@ -46,12 +46,7 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
   function draw(width: number, height: number) {
     g.selectAll('*').remove();
 
-    const margin = {
-      top: 20,
-      right: Math.max(80, width * 0.1), // 10% of width or at least 80
-      bottom: 50,
-      left: 50
-    };
+    const margin = { top: 20, right: 30, bottom: 50, left: 50 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
@@ -146,8 +141,9 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
       if (delta > 0) symbol = '▼';
       else if (delta < 0) symbol = '▲';
 
+      const deltaX = Math.min(xScale(finalWeek) + 30, innerWidth - 5);
       g.append('text')
-        .attr('x', Math.min(xScale(last.week) + 20, innerWidth - 5))
+        .attr('x', deltaX)
         .attr('y', yScale(last.rank))
         .attr('fill', '#ccc')
         .attr('font-size', fontSize)
@@ -187,6 +183,14 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
       .text(d => `${d.school}: Rank ${d.rank}`);
 
     // Delta explanation label
+    g.append('line')
+      .attr('x1', deltaX - 10)
+      .attr('x2', deltaX - 10)
+      .attr('y1', 0)
+      .attr('y2', innerHeight)
+      .attr('stroke', '#333')
+      .attr('stroke-dasharray', '4,2');
+
     g.append('text')
       .attr('x', innerWidth)
       .attr('y', -10)
@@ -198,12 +202,8 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
 
   const resizeObserver = new ResizeObserver(entries => {
     for (const entry of entries) {
-      const screenWidth = window.innerWidth;
-      const screenHeight = window.innerHeight;
-
-      const width = Math.min(screenWidth * 0.9, 1400);
-      const height = Math.min(screenHeight * 0.75, width * 0.65);
-
+      const width = entry.contentRect.width;
+      const height = width * 0.6;
       draw(width, height);
     }
   });
