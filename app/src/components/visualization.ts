@@ -29,9 +29,7 @@ interface FlattenedTeamRank {
   logo: string;
 }
 
-// Main public function
 export function renderVisualization(data: RawPollRow[], containerId: string): void {
-  // Group into WeekRanking[] format expected by existing rendering logic
   const groupedByWeek = d3.groups(data, d => d.week).map(([week, rows]) => ({
     week: String(week),
     polls: [
@@ -49,7 +47,6 @@ export function renderVisualization(data: RawPollRow[], containerId: string): vo
   renderGroupedVisualization(groupedByWeek, containerId);
 }
 
-// Internal rendering logic — unchanged
 function renderGroupedVisualization(data: WeekRanking[], containerId: string): void {
   d3.select(`#${containerId}`).selectAll('*').remove();
 
@@ -78,28 +75,14 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
       )
     );
 
-  interface TeamLineData {
-    school: string;
-    ranks: FlattenedTeamRank[];
-    color: string;
-  }
-
   const grouped = d3.group(flattenedData, (d: FlattenedTeamRank) => d.school);
-  const topTeams: TeamLineData[] = Array.from(
-    grouped.entries() as Iterable<[string, FlattenedTeamRank[]]>
-  )
-    .map(
-      ([school, ranks]: [string, FlattenedTeamRank[]]): TeamLineData => ({
-        school,
-        ranks: ranks.sort((a, b) => a.week - b.week),
-        color: ranks[0].color,
-      })
-    )
-    .sort(
-      (a, b) =>
-        (d3.min(a.ranks, (d) => d.rank) ?? Infinity) -
-        (d3.min(b.ranks, (d) => d.rank) ?? Infinity)
-    )
+  const topTeams = Array.from(grouped.entries())
+    .map(([school, ranks]) => ({
+      school,
+      ranks: ranks.sort((a, b) => a.week - b.week),
+      color: ranks[0].color,
+    }))
+    .sort((a, b) => (d3.min(a.ranks, (d) => d.rank) ?? Infinity) - (d3.min(b.ranks, (d) => d.rank) ?? Infinity))
     .slice(0, 12);
 
   const xScale = d3
@@ -108,10 +91,9 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
     .range([0, width]);
 
   const yMax = d3.max(flattenedData, (d) => d.rank) || 25;
-  const yScale = d3.scaleLinear().domain([1, yMax]).range([height, 0]);
+  const yScale = d3.scaleLinear().domain([1, yMax]).range([0, height]);
 
-  svg
-    .append('g')
+  svg.append('g')
     .attr('transform', `translate(0,${height})`)
     .call(d3.axisBottom(xScale).ticks(data.length).tickFormat(d3.format('d')));
 
@@ -122,7 +104,8 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
     .attr('font-size', '12px')
     .text('Week');
 
-  svg.append('g').call(d3.axisLeft(yScale).ticks(10));
+  svg.append('g')
+    .call(d3.axisLeft(yScale).ticks(10));
 
   svg.append('text')
     .attr('transform', 'rotate(-90)')
@@ -132,13 +115,11 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
     .attr('font-size', '12px')
     .text('Rank');
 
-  const lineGenerator = d3
-    .line<{ week: number; rank: number }>()
+  const lineGenerator = d3.line<FlattenedTeamRank>()
     .x((d) => xScale(d.week))
     .y((d) => yScale(d.rank));
 
-  svg
-    .selectAll('.team-line')
+  svg.selectAll('.team-line')
     .data(topTeams)
     .enter()
     .append('path')
@@ -147,33 +128,53 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
     .attr('fill', 'none')
     .attr('stroke', (d) => d.color)
     .attr('stroke-width', 2)
-    .attr('opacity', 0.7);
+    .attr('opacity', 0.7)
+    .attr('stroke-dasharray', function() {
+      const length = (this as SVGPathElement).getTotalLength();
+      return `${length},${length}`;
+    })
+    .attr('stroke-dashoffset', function() {
+      return (this as SVGPathElement).getTotalLength();
+    })
+    .transition()
+    .duration(1200)
+    .attr('stroke-dashoffset', 0);
 
-  const points = svg
-    .selectAll('.team-point')
+  const points = svg.selectAll('.team-point')
     .data(flattenedData)
     .enter()
     .append('g')
     .attr('class', 'team-point')
-    .attr('transform', (d) => `translate(${xScale(d.week)},${yScale(d.rank)})`);
+    .attr('transform', (d) => `translate(${xScale(d.week)},${yScale(d.rank)})`)
+    .style('opacity', 0)
+    .transition()
+    .duration(1000)
+    .delay((_, i) => i * 5)
+    .style('opacity', 1);
 
-  points
-    .append('circle')
+  const g = svg.selectAll<SVGGElement, FlattenedTeamRank>('.team-point');
+
+  g.append('circle')
     .attr('r', 8)
     .attr('fill', (d) => d.color)
     .attr('stroke', '#000')
     .attr('stroke-width', 1.5);
 
-  points
-    .append('image')
-    .attr('xlink:href', (d) => d.logo)
-    .attr('x', -10)
-    .attr('y', -10)
-    .attr('width', 20)
-    .attr('height', 20);
+  g.append('image')
+    .attr('href', (d) => d.logo)
+    .attr('x', -7)
+    .attr('y', -7)
+    .attr('width', 14)
+    .attr('height', 14)
+    .style('opacity', 0.9)
+    .on('mouseover', function () {
+      d3.select(this).transition().duration(200).style('opacity', 1);
+    })
+    .on('mouseout', function () {
+      d3.select(this).transition().duration(200).style('opacity', 0.9);
+    });
 
-  points
-    .append('text')
+  g.append('text')
     .attr('x', 0)
     .attr('y', -15)
     .attr('text-anchor', 'middle')
@@ -181,7 +182,6 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
     .attr('fill', '#000')
     .text((d) => d.rank);
 
-  points
-    .append('title')
+  g.append('title')
     .text((d) => `${d.school}: Rank ${d.rank}`);
 }
