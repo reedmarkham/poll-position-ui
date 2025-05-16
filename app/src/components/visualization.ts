@@ -1,4 +1,3 @@
-
 import * as d3 from 'd3';
 
 export interface RawPollRow {
@@ -83,7 +82,7 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
       .range([0, innerWidth]);
 
     const yMax = d3.max(flattenedData, d => d.rank) || 25;
-    const yScale = d3.scaleLinear().domain([1, yMax]).range([0, innerHeight]);
+    const yScale = d3.scaleLinear().domain([1 - 0.5, yMax + 0.5]).range([0, innerHeight]);
 
     const baseRadius = Math.max(4, width / 120);
     const fontSize = Math.max(8, width / 80);
@@ -124,7 +123,7 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
       .attr('transform', d => `translate(${xScale(d.week)},${yScale(d.rank ?? yMax)})`);
 
     // Final rank deltas
-    const deltaX = Math.min(xScale(finalWeek) + 30, innerWidth - 5);
+    const deltaX = innerWidth + 20;
     allTeams.forEach(team => {
       const first = team.ranks[0];
       const last = team.ranks[team.ranks.length - 1];
@@ -183,7 +182,7 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
       .attr('stroke-dasharray', '4,2');
 
     g.append('text')
-      .attr('x', innerWidth)
+      .attr('x', deltaX)
       .attr('y', -10)
       .attr('text-anchor', 'end')
       .attr('font-size', fontSize * 0.9)
