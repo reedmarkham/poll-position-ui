@@ -3,7 +3,7 @@ FROM node:20 AS builder
 
 WORKDIR /app
 
-# Accept build-time environment variable
+# Inject Vite environment variable
 ARG VITE_S3_BUCKET
 ENV VITE_S3_BUCKET=$VITE_S3_BUCKET
 
@@ -14,10 +14,13 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Build the Vite app with injected env var
+# Debug log to verify the env value is passed correctly
+RUN echo "🌱 VITE_S3_BUCKET at build: $VITE_S3_BUCKET"
+
+# Build the Vite app (uses import.meta.env.VITE_S3_BUCKET)
 RUN npm run build
 
-# Stage 2: Serve the app using `serve`
+# Stage 2: Serve the built app
 FROM node:20 AS runner
 
 WORKDIR /app
@@ -28,7 +31,7 @@ RUN npm install -g serve
 # Copy built assets from builder stage
 COPY --from=builder /app/dist ./dist
 
-# Expose the port `serve` will use
+# Expose the port serve uses
 EXPOSE 3000
 
 # Serve the built site

@@ -1,6 +1,8 @@
 # 🏈 poll-position-ui
 
-This project deploys a UI to visualize data from [`poll-position`](`https://www.github.com/reedmarkham/poll-position) by connecting directly to its S3 bucket.
+This project deploys a UI using d3 to visualize data from [`poll-position`](`https://www.github.com/reedmarkham/poll-position) by connecting directly to its S3 bucket.
+
+http://pollpo-pollp-2ndyfzh7dezn-2006059404.us-east-1.elb.amazonaws.com/
 
 ## Folder Structure
 
@@ -8,17 +10,31 @@ This project deploys a UI to visualize data from [`poll-position`](`https://www.
 poll-position-ui/
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml              # GitHub Actions workflow for deploying the UI
-├── src/                            # TypeScript source files for the UI
-│   ├── components/
-│   │   └── visualization.ts        # Encapsulates logic for rendering poll visualizations
-│   └── index.ts                    # Main application entry point
-├── Dockerfile                      # Dockerfile to containerize the UI app
-├── ecs-task-definition.json        # Task definition for ECS deployment
-├── index.html                      # Root HTML page for static site rendering
-├── package.json                    # NPM dependencies for the UI
-├── tsconfig.json                   # TypeScript configuration
-└── README.md                       # Project documentation
+│       └── deploy.yml              # GitHub Actions: CI/CD pipeline
+├── app/
+│   ├── Dockerfile                  # Vite build & static file server (serve)
+│   ├── index.html                  # Main HTML entrypoint
+│   ├── package.json                # Frontend dependencies
+│   ├── src/
+│   │   ├── index.ts                # App bootstrap (calls loadLatestPollData)
+│   │   ├── vite-env.d.ts           # Vite environment type declarations
+│   │   ├── vite.config.ts          # Vite configurations
+│   │   ├── components/
+│   │   │   └── visualization.ts    # D3 visualization renderer
+│   │   └── utils/
+│   │       └── loadS3.ts           # S3 fetch + reshape logic
+│   └── tsconfig.json              # TypeScript config for frontend
+├── infra/
+│   ├── bin/
+│   │   └── poll-position-ui.ts     # CDK app entrypoint
+│   ├── lib/
+│   │   └── poll-position-ui-stack.ts  # CDK stack definition (ECS + ALB)
+│   ├── package.json                # CDK dependencies
+│   ├── cdk.json                    # CDK app config
+│   └── tsconfig.json              # TypeScript config for infra
+├── README.md
+└── .gitignore
+
 ```
 
 ## Pre-requisites
