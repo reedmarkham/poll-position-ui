@@ -180,12 +180,21 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
 
     points.append('title')
       .text(d => `${d.school}: Rank ${d.rank}`);
+
+    // Delta explanation label
+    g.append('text')
+      .attr('x', innerWidth)
+      .attr('y', -10)
+      .attr('text-anchor', 'end')
+      .attr('font-size', fontSize * 0.9)
+      .attr('fill', '#888')
+      .text('Delta: Final rank - First rank');
   }
 
   const resizeObserver = new ResizeObserver(entries => {
     for (const entry of entries) {
-      const width = Math.min(entry.contentRect.width, 1200);
-      const height = width * 0.65;
+      const width = entry.contentRect.width;
+      const height = width * 0.6;
       draw(width, height);
     }
   });
