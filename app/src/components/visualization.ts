@@ -128,22 +128,54 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
     g.selectAll('.delta-label').remove();
 
     // Add new delta labels
+    // Step 1: Compute delta for each team and group by delta value
+    const deltaMap = d3.group(
+      allTeams.map(d => {
+        const delta = d.ranks[d.ranks.length - 1].rank - d.ranks[0].rank;
+        return { ...d, delta };
+      }),
+      d => d.delta
+    );
+
+    // Step 2: Flatten back with y-offsets
+    let labelData: {
+      school: string;
+      color: string;
+      rank: number;
+      delta: number;
+      yOffset: number;
+    }[] = [];
+
+    deltaMap.forEach((teams, delta) => {
+      const deltaGroupHeight = 14; // px between labels in same delta
+      teams.forEach((team, i) => {
+        labelData.push({
+          school: team.school,
+          color: team.color,
+          rank: team.ranks[team.ranks.length - 1].rank,
+          delta,
+          yOffset: i * deltaGroupHeight,
+        });
+      });
+    });
+
+    // Step 3: Render delta labels with vertical offsets
     g.selectAll('.delta-label')
-      .data(allTeams)
+      .data(labelData)
       .enter()
       .append('text')
       .attr('class', 'delta-label')
       .attr('x', deltaX)
-      .attr('y', d => yScale(d.ranks[d.ranks.length - 1].rank))
+      .attr('y', d => yScale(d.rank) + d.yOffset)
       .attr('fill', '#ccc')
       .attr('font-size', fontSize)
       .attr('alignment-baseline', 'middle')
       .attr('text-anchor', 'start')
       .text(d => {
-        const delta = d.ranks[d.ranks.length - 1].rank - d.ranks[0].rank;
-        const symbol = delta > 0 ? '▼' : delta < 0 ? '▲' : '–';
-        return `${Math.abs(delta)} ${symbol}`;
+        const symbol = d.delta > 0 ? '▼' : d.delta < 0 ? '▲' : '–';
+        return `${Math.abs(d.delta)} ${symbol}`;
       });
+
 
     // Labels drawn above circles to prevent obstruction
     points.append('text')
