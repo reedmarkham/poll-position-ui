@@ -70,19 +70,22 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
           rank: team.rank,
           school: team.school,
           color: team.color || '#ccc',
-          logo: team.logos[0] || '',
+          logo: team.logos?.[0] ?? '',
         }))
       )
     );
 
-  const grouped = d3.group(flattenedData, (d: FlattenedTeamRank) => d.school);
+  const grouped = d3.group(flattenedData, (d) => d.school);
   const topTeams = Array.from(grouped.entries())
     .map(([school, ranks]) => ({
       school,
       ranks: ranks.sort((a, b) => a.week - b.week),
       color: ranks[0].color,
     }))
-    .sort((a, b) => (d3.min(a.ranks, (d) => d.rank) ?? Infinity) - (d3.min(b.ranks, (d) => d.rank) ?? Infinity))
+    .sort((a, b) =>
+      (d3.min(a.ranks, (d) => d.rank) ?? Infinity) -
+      (d3.min(b.ranks, (d) => d.rank) ?? Infinity)
+    )
     .slice(0, 12);
 
   const xScale = d3
@@ -103,9 +106,6 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
     .attr('text-anchor', 'middle')
     .attr('font-size', '12px')
     .text('Week');
-
-  svg.append('g')
-    .call(d3.axisLeft(yScale).ticks(10));
 
   svg.append('text')
     .attr('transform', 'rotate(-90)')
@@ -129,11 +129,11 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
     .attr('stroke', (d) => d.color)
     .attr('stroke-width', 2)
     .attr('opacity', 0.7)
-    .attr('stroke-dasharray', function() {
+    .attr('stroke-dasharray', function () {
       const length = (this as SVGPathElement).getTotalLength();
       return `${length},${length}`;
     })
-    .attr('stroke-dashoffset', function() {
+    .attr('stroke-dashoffset', function () {
       return (this as SVGPathElement).getTotalLength();
     })
     .transition()
@@ -156,12 +156,13 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
     .style('opacity', 0.95)
     .on('mouseover', function () {
       d3.select(this)
+        .raise()
         .transition()
         .duration(150)
-        .attr('width', 24)
-        .attr('height', 24)
-        .attr('x', -12)
-        .attr('y', -12);
+        .attr('width', 26)
+        .attr('height', 26)
+        .attr('x', -13)
+        .attr('y', -13);
     })
     .on('mouseout', function () {
       d3.select(this)
