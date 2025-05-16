@@ -37,7 +37,7 @@ jobs:
         with:
           node-version: '20'
 
-      # --- Frontend ---
+      # --- Frontend Build ---
       - name: Debug VITE_S3_BUCKET
         run: echo "📦 VITE_S3_BUCKET = $VITE_S3_BUCKET"
 
@@ -45,7 +45,7 @@ jobs:
         working-directory: app
         run: npm install
 
-      - name: Build frontend Docker image (inject VITE_S3_BUCKET)
+      - name: Build Docker image with env injected
         working-directory: app
         run: |
           docker build \
@@ -57,19 +57,22 @@ jobs:
       - name: Authenticate Docker with ECR
         run: |
           aws ecr get-login-password --region $AWS_REGION | \
-          docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+          docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
       - name: Ensure ECR Repository Exists
         run: |
           aws ecr describe-repositories --repository-names $ECR_REPO --region $AWS_REGION || \
           aws ecr create-repository --repository-name $ECR_REPO --region $AWS_REGION
 
-      - name: Push frontend Docker image to ECR
+      - name: Tag Docker image for ECR
         run: |
           docker tag $ECR_REPO:latest $IMAGE_URI
+
+      - name: Push Docker image to ECR
+        run: |
           docker push $IMAGE_URI
 
-      # --- Infra ---
+      # --- Infrastructure (CDK) ---
       - name: Install CDK dependencies
         working-directory: infra
         run: npm install
