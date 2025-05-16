@@ -4,6 +4,8 @@ This project deploys a UI using d3 to visualize data from [`poll-position`](`htt
 
 http://pollpo-pollp-2ndyfzh7dezn-2006059404.us-east-1.elb.amazonaws.com/
 
+Note that it does not (currently) support a truly responsive layout or mobile usage, but it should render nicely on most web browsers.
+
 ## Folder Structure
 
 ```

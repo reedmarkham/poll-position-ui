@@ -1,4 +1,3 @@
-
 import * as d3 from 'd3';
 
 export interface RawPollRow {
@@ -123,8 +122,9 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
       .attr('class', 'team-point')
       .attr('transform', d => `translate(${xScale(d.week)},${yScale(d.rank ?? yMax)})`);
 
+    const deltaX = innerWidth + 10;
+
     // Final rank deltas
-    const deltaX = innerWidth + 10; // Position delta labels just outside the right edge of the chart
     allTeams.forEach(team => {
       const first = team.ranks[0];
       const last = team.ranks[team.ranks.length - 1];
@@ -134,6 +134,7 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
       if (delta > 0) symbol = '▼';
       else if (delta < 0) symbol = '▲';
 
+      const deltaX = Math.min(xScale(finalWeek) + 30, innerWidth - 5);
       g.append('text')
         .attr('x', deltaX)
         .attr('y', yScale(last.rank))
