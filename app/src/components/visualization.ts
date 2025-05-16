@@ -45,7 +45,7 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
   function draw(width: number, height: number) {
     g.selectAll('*').remove();
 
-    const margin = { top: 20, right: 30, bottom: 50, left: 50 };
+    const margin = { top: 40, right: 90, bottom: 50, left: 50 }; // Increased right margin
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
@@ -123,7 +123,7 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
       .attr('transform', d => `translate(${xScale(d.week)},${yScale(d.rank ?? yMax)})`);
 
     // Final rank deltas
-    const deltaX = innerWidth + 20;
+    const deltaX = innerWidth + 5;
     allTeams.forEach(team => {
       const first = team.ranks[0];
       const last = team.ranks[team.ranks.length - 1];
@@ -143,23 +143,7 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
         .text(`${Math.abs(delta)} ${symbol}`);
     });
 
-    points.append('circle')
-      .attr('r', baseRadius)
-      .attr('fill', d => topSchools.includes(d.school) ? d.color : '#444')
-      .style('opacity', d => topSchools.includes(d.school) ? 0.95 : 0.3)
-      .on('mouseover', function () {
-        d3.select(this)
-          .transition()
-          .duration(150)
-          .attr('r', baseRadius + 2);
-      })
-      .on('mouseout', function () {
-        d3.select(this)
-          .transition()
-          .duration(150)
-          .attr('r', baseRadius);
-      });
-
+    // Labels drawn above circles to prevent obstruction
     points.append('text')
       .attr('x', 0)
       .attr('y', 4)
@@ -168,6 +152,13 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
       .attr('font-weight', 'bold')
       .attr('fill', '#fff')
       .text(d => d.rank ?? '');
+
+    // Circles below text to prevent obstruction
+    points.append('circle')
+      .attr('r', baseRadius)
+      .attr('fill', d => topSchools.includes(d.school) ? d.color : '#444')
+      .style('opacity', d => topSchools.includes(d.school) ? 0.95 : 0.3)
+      .lower();
 
     points.append('title')
       .text(d => `${d.school}: Rank ${d.rank}`);
