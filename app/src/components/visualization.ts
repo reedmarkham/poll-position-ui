@@ -124,24 +124,26 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
 
     // Final rank deltas
     const deltaX = innerWidth + 5;
-    allTeams.forEach(team => {
-      const first = team.ranks[0];
-      const last = team.ranks[team.ranks.length - 1];
-      const delta = last.rank - first.rank;
+    // Clear old delta labels first
+    g.selectAll('.delta-label').remove();
 
-      let symbol = '–';
-      if (delta > 0) symbol = '▼';
-      else if (delta < 0) symbol = '▲';
-
-      g.append('text')
-        .attr('x', deltaX)
-        .attr('y', yScale(last.rank))
-        .attr('fill', '#ccc')
-        .attr('font-size', fontSize)
-        .attr('alignment-baseline', 'middle')
-        .attr('text-anchor', 'start')
-        .text(`${Math.abs(delta)} ${symbol}`);
-    });
+    // Add new delta labels
+    g.selectAll('.delta-label')
+      .data(allTeams)
+      .enter()
+      .append('text')
+      .attr('class', 'delta-label')
+      .attr('x', deltaX)
+      .attr('y', d => yScale(d.ranks[d.ranks.length - 1].rank))
+      .attr('fill', '#ccc')
+      .attr('font-size', fontSize)
+      .attr('alignment-baseline', 'middle')
+      .attr('text-anchor', 'start')
+      .text(d => {
+        const delta = d.ranks[d.ranks.length - 1].rank - d.ranks[0].rank;
+        const symbol = delta > 0 ? '▼' : delta < 0 ? '▲' : '–';
+        return `${Math.abs(delta)} ${symbol}`;
+      });
 
     // Labels drawn above circles to prevent obstruction
     points.append('text')
