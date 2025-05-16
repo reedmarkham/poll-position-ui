@@ -128,16 +128,22 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
     g.selectAll('.delta-label').remove();
 
     // Add new delta labels
-    // Step 1: Compute delta for each team and group by delta value
-    const deltaMap = d3.group(
+    // Step 1: Group teams by final rank instead of delta
+    const finalRankMap = d3.group(
       allTeams.map(d => {
-        const delta = d.ranks[d.ranks.length - 1].rank - d.ranks[0].rank;
-        return { ...d, delta };
+        const first = d.ranks[0];
+        const last = d.ranks[d.ranks.length - 1];
+        return {
+          school: d.school,
+          color: d.color,
+          rank: last.rank,
+          delta: last.rank - first.rank,
+        };
       }),
-      d => d.delta
+      d => d.rank
     );
 
-    // Step 2: Flatten back with y-offsets
+    // Step 2: Apply vertical offsets within each rank group
     let labelData: {
       school: string;
       color: string;
@@ -146,14 +152,12 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
       yOffset: number;
     }[] = [];
 
-    deltaMap.forEach((teams, delta) => {
-      const deltaGroupHeight = 14; // px between labels in same delta
+    finalRankMap.forEach((teams, rank) => {
+      const deltaGroupHeight = 14;
+      teams.sort((a, b) => d3.ascending(a.delta, b.delta)); // optionally sort by delta
       teams.forEach((team, i) => {
         labelData.push({
-          school: team.school,
-          color: team.color,
-          rank: team.ranks[team.ranks.length - 1].rank,
-          delta,
+          ...team,
           yOffset: i * deltaGroupHeight,
         });
       });
