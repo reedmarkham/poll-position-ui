@@ -34,18 +34,23 @@
     }
 
     #app {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      padding: 2rem;
-      min-height: 500px;
-    }
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 2rem;
+        width: 100%;
+        max-width: 1000px;
+        margin: 0 auto;
+        aspect-ratio: 5 / 3;
+        height: auto;
+      }
 
-    #app svg {
-      max-width: 100%;
-      height: auto;
-    }
+      #app svg {
+        width: 100%;
+        height: auto;
+        max-height: 100%;
+      }
 
     footer {
       text-align: center;

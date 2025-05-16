@@ -162,14 +162,14 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
   // Use ResizeObserver to watch container size
   const resizeObserver = new ResizeObserver(entries => {
     for (const entry of entries) {
-      const { width, height } = entry.contentRect;
-      draw(width, height);
+      const { width } = entry.contentRect;
+      const effectiveHeight = width * 0.6; // Enforce a 5:3 (or 3:2) aspect ratio
+      draw(width, effectiveHeight);
     }
   });
 
   const domNode = container.node() as HTMLElement;
-  if (domNode) {
-    resizeObserver.observe(domNode);
+    if (domNode) {
+      resizeObserver.observe(domNode);
+    }
   }
-}
-
