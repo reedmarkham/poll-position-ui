@@ -140,46 +140,46 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
     .duration(1200)
     .attr('stroke-dashoffset', 0);
 
-  const points = svg.selectAll('.team-point')
+  const g = svg.selectAll('.team-point')
     .data(flattenedData)
     .enter()
     .append('g')
     .attr('class', 'team-point')
-    .attr('transform', (d) => `translate(${xScale(d.week)},${yScale(d.rank)})`)
-    .style('opacity', 0)
-    .transition()
-    .duration(1000)
-    .delay((_, i) => i * 5)
-    .style('opacity', 1);
-
-  const g = svg.selectAll<SVGGElement, FlattenedTeamRank>('.team-point');
-
-  g.append('circle')
-    .attr('r', 8)
-    .attr('fill', (d) => d.color)
-    .attr('stroke', '#000')
-    .attr('stroke-width', 1.5);
+    .attr('transform', (d) => `translate(${xScale(d.week)},${yScale(d.rank)})`);
 
   g.append('image')
     .attr('href', (d) => d.logo)
-    .attr('x', -7)
-    .attr('y', -7)
-    .attr('width', 14)
-    .attr('height', 14)
-    .style('opacity', 0.9)
+    .attr('x', -10)
+    .attr('y', -10)
+    .attr('width', 20)
+    .attr('height', 20)
+    .style('opacity', 0.95)
     .on('mouseover', function () {
-      d3.select(this).transition().duration(200).style('opacity', 1);
+      d3.select(this)
+        .transition()
+        .duration(150)
+        .attr('width', 24)
+        .attr('height', 24)
+        .attr('x', -12)
+        .attr('y', -12);
     })
     .on('mouseout', function () {
-      d3.select(this).transition().duration(200).style('opacity', 0.9);
+      d3.select(this)
+        .transition()
+        .duration(150)
+        .attr('width', 20)
+        .attr('height', 20)
+        .attr('x', -10)
+        .attr('y', -10);
     });
 
   g.append('text')
     .attr('x', 0)
-    .attr('y', -15)
+    .attr('y', 4)
     .attr('text-anchor', 'middle')
     .attr('font-size', '10px')
-    .attr('fill', '#000')
+    .attr('font-weight', 'bold')
+    .attr('fill', '#fff')
     .text((d) => d.rank);
 
   g.append('title')
