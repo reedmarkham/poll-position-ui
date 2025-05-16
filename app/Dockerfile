@@ -3,6 +3,10 @@ FROM node:20 AS builder
 
 WORKDIR /app
 
+# Accept build-time environment variable
+ARG VITE_S3_BUCKET
+ENV VITE_S3_BUCKET=$VITE_S3_BUCKET
+
 # Install dependencies
 COPY package*.json ./
 RUN npm install
@@ -10,7 +14,7 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Build the Vite app
+# Build the Vite app with injected env var
 RUN npm run build
 
 # Stage 2: Serve the app using `serve`

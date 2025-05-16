@@ -18,6 +18,8 @@ jobs:
       TOOLKIT_STACK: CDKToolkit-poll-position
       STACK_NAME: PollPositionUIStack
       BOOTSTRAP_QUALIFIER: pollpstn
+      ECR_REPO: poll-position-ui
+      IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/poll-position-ui:latest
 
     steps:
       - name: Checkout Code
@@ -36,14 +38,20 @@ jobs:
           node-version: '20'
 
       # --- Frontend ---
+      - name: Debug VITE_S3_BUCKET
+        run: echo "📦 VITE_S3_BUCKET = $VITE_S3_BUCKET"
+
       - name: Install frontend dependencies
         working-directory: app
         run: npm install
 
-      - name: Build frontend Docker image
+      - name: Build frontend Docker image (inject VITE_S3_BUCKET)
         working-directory: app
         run: |
-          docker build -t poll-position-ui -f Dockerfile .
+          docker build \
+            --build-arg VITE_S3_BUCKET=$VITE_S3_BUCKET \
+            -t $ECR_REPO \
+            -f Dockerfile .
 
       - name: Authenticate Docker with ECR
         run: |
@@ -52,13 +60,13 @@ jobs:
 
       - name: Ensure ECR Repository Exists
         run: |
-          aws ecr describe-repositories --repository-names poll-position-ui --region $AWS_REGION || \
-          aws ecr create-repository --repository-name poll-position-ui --region $AWS_REGION
+          aws ecr describe-repositories --repository-names $ECR_REPO --region $AWS_REGION || \
+          aws ecr create-repository --repository-name $ECR_REPO --region $AWS_REGION
 
       - name: Push frontend Docker image to ECR
         run: |
-          docker tag poll-position-ui:latest ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/poll-position-ui:latest
-          docker push ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/poll-position-ui:latest
+          docker tag $ECR_REPO:latest $IMAGE_URI
+          docker push $IMAGE_URI
 
       # --- Infra ---
       - name: Install CDK dependencies
