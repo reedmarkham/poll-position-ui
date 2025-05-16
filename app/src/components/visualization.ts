@@ -19,15 +19,22 @@ interface FlattenedTeamRank {
 
 function normalizeTiedRanks(data: RawPollRow[]): RawPollRow[] {
   return d3.groups(data, d => d.week).flatMap(([week, rows]) => {
-    let visualRank = 1;
-
     const groupedByRank = d3.groups(rows, d => d.rank).sort((a, b) => a[0] - b[0]);
+
+    let visualRankCounter = 1;
 
     return groupedByRank.flatMap(([rank, ties]) => {
       const sorted = ties.sort((a, b) => a.school.localeCompare(b.school));
-      return sorted.map(team => ({
+
+      // Spread out tied items in Week 1 with small offsets
+      const applyOffset = week === 1;
+      const offset = 0.1; // You can tune this (e.g. 0.15 for more spacing)
+
+      return sorted.map((team, i) => ({
         ...team,
-        visualRank: visualRank++,
+        visualRank: applyOffset
+          ? rank + offset * (i - (sorted.length - 1) / 2)
+          : visualRankCounter++,
       }));
     });
   });
