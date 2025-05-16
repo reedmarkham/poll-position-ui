@@ -147,7 +147,7 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
       else if (delta < 0) symbol = '▲';
 
       g.append('text')
-        .attr('x', xScale(last.week) + 20)
+        .attr('x', Math.min(xScale(last.week) + 20, innerWidth - 5))
         .attr('y', yScale(last.rank))
         .attr('fill', '#ccc')
         .attr('font-size', fontSize)
