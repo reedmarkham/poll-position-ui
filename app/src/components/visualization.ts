@@ -16,8 +16,23 @@ interface FlattenedTeamRank {
   color: string;
 }
 
+function normalizeTiedRanks(data: RawPollRow[]): RawPollRow[] {
+  return d3.groups(data, d => d.week).flatMap(([week, rows]) => {
+    // Group rows by `rank`, then sort ties alphabetically
+    const sorted = d3.groups(rows, d => d.rank)
+      .flatMap(([rank, tiedRows]) =>
+        tiedRows
+          .sort((a, b) => a.school.localeCompare(b.school))
+          .map(r => ({ ...r }))
+      );
+    return sorted;
+  });
+}
+
 export function renderVisualization(data: RawPollRow[], containerId: string): void {
-  const groupedByWeek = d3.groups(data, d => d.week).map(([week, rows]) => ({
+  const normalized = normalizeTiedRanks(data);
+
+  const groupedByWeek = d3.groups(normalized, d => d.week).map(([week, rows]) => ({
     week: String(week),
     ranks: rows.map(r => ({
       rank: r.rank,
@@ -153,12 +168,16 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
     }[] = [];
 
     finalRankMap.forEach((teams, rank) => {
-      const deltaGroupHeight = 14;
-      teams.sort((a, b) => d3.ascending(a.delta, b.delta)); // optionally sort by delta
+      teams.sort((a, b) => d3.ascending(a.delta, b.delta));
+
+      const spacing = 12; // vertical space between each label
+      const totalHeight = spacing * teams.length;
+      const startOffset = -totalHeight / 2 + spacing / 2;
+
       teams.forEach((team, i) => {
         labelData.push({
           ...team,
-          yOffset: i * deltaGroupHeight,
+          yOffset: startOffset + i * spacing,
         });
       });
     });
