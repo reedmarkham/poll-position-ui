@@ -54,11 +54,16 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
   const width = 800 - margin.left - margin.right;
   const height = 400 - margin.top - margin.bottom;
 
+  const outerWidth = width + margin.left + margin.right;
+  const outerHeight = height + margin.top + margin.bottom;
+
   const svg = d3
     .select(`#${containerId}`)
     .append('svg')
-    .attr('width', width + margin.left + margin.right)
-    .attr('height', height + margin.top + margin.bottom)
+    .attr('viewBox', `0 0 ${outerWidth} ${outerHeight}`)
+    .attr('preserveAspectRatio', 'xMidYMid meet')
+    .style('width', '100%')
+    .style('height', 'auto')
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
@@ -75,25 +80,29 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
       )
     );
 
-  const grouped = d3.group(flattenedData, (d) => d.school);
-  const topTeams = Array.from(grouped.entries())
+  const finalWeek = d3.max(flattenedData, d => d.week) ?? 0;
+  const topSchools = flattenedData
+    .filter(d => d.week === finalWeek)
+    .sort((a, b) => a.rank - b.rank)
+    .slice(0, 12)
+    .map(d => d.school);
+
+  const grouped = d3.group(flattenedData, d => d.school);
+
+  const allTeams = Array.from(grouped.entries())
     .map(([school, ranks]) => ({
       school,
       ranks: ranks.sort((a, b) => a.week - b.week),
       color: ranks[0].color,
-    }))
-    .sort((a, b) =>
-      (d3.min(a.ranks, (d) => d.rank) ?? Infinity) -
-      (d3.min(b.ranks, (d) => d.rank) ?? Infinity)
-    )
-    .slice(0, 12);
+      isTop: topSchools.includes(school),
+    }));
 
   const xScale = d3
     .scaleLinear()
-    .domain(d3.extent(flattenedData, (d) => d.week) as [number, number])
+    .domain(d3.extent(flattenedData, d => d.week) as [number, number])
     .range([0, width]);
 
-  const yMax = d3.max(flattenedData, (d) => d.rank) || 25;
+  const yMax = d3.max(flattenedData, d => d.rank) || 25;
   const yScale = d3.scaleLinear().domain([1, yMax]).range([0, height]);
 
   svg.append('g')
@@ -102,9 +111,10 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
 
   svg.append('text')
     .attr('x', width / 2)
-    .attr('y', height + margin.bottom - 5)
+    .attr('y', height + 40)
     .attr('text-anchor', 'middle')
     .attr('font-size', '12px')
+    .attr('fill', '#ccc')
     .text('Week');
 
   svg.append('text')
@@ -116,19 +126,19 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
     .text('Rank');
 
   const lineGenerator = d3.line<FlattenedTeamRank>()
-    .x((d) => xScale(d.week))
-    .y((d) => yScale(d.rank));
+    .x(d => xScale(d.week))
+    .y(d => yScale(d.rank));
 
   svg.selectAll('.team-line')
-    .data(topTeams)
+    .data(allTeams)
     .enter()
     .append('path')
     .attr('class', 'team-line')
-    .attr('d', (d) => lineGenerator(d.ranks)!)
+    .attr('d', d => lineGenerator(d.ranks)!)
     .attr('fill', 'none')
-    .attr('stroke', (d) => d.color)
-    .attr('stroke-width', 2)
-    .attr('opacity', 0.7)
+    .attr('stroke', d => d.isTop ? d.color : '#444')
+    .attr('stroke-width', d => d.isTop ? 2 : 1)
+    .attr('opacity', d => d.isTop ? 0.7 : 0.3)
     .attr('stroke-dasharray', function () {
       const length = (this as SVGPathElement).getTotalLength();
       return `${length},${length}`;
@@ -137,7 +147,7 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
       return (this as SVGPathElement).getTotalLength();
     })
     .transition()
-    .duration(1200)
+    .duration(1000)
     .attr('stroke-dashoffset', 0);
 
   const g = svg.selectAll('.team-point')
@@ -145,16 +155,17 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
     .enter()
     .append('g')
     .attr('class', 'team-point')
-    .attr('transform', (d) => `translate(${xScale(d.week)},${yScale(d.rank)})`);
+    .attr('transform', d => `translate(${xScale(d.week)},${yScale(d.rank)})`);
 
   g.append('image')
-    .attr('href', (d) => d.logo)
+    .attr('href', d => d.logo)
     .attr('x', -10)
     .attr('y', -10)
     .attr('width', 20)
     .attr('height', 20)
-    .style('opacity', 0.95)
-    .on('mouseover', function () {
+    .style('opacity', d => topSchools.includes(d.school) ? 0.95 : 0.2)
+    .on('mouseover', function (event, d) {
+      if (!topSchools.includes(d.school)) return;
       d3.select(this)
         .raise()
         .transition()
@@ -164,7 +175,8 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
         .attr('x', -13)
         .attr('y', -13);
     })
-    .on('mouseout', function () {
+    .on('mouseout', function (event, d) {
+      if (!topSchools.includes(d.school)) return;
       d3.select(this)
         .transition()
         .duration(150)
@@ -181,8 +193,8 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
     .attr('font-size', '10px')
     .attr('font-weight', 'bold')
     .attr('fill', '#fff')
-    .text((d) => d.rank);
+    .text(d => d.rank);
 
   g.append('title')
-    .text((d) => `${d.school}: Rank ${d.rank}`);
+    .text(d => `${d.school}: Rank ${d.rank}`);
 }
