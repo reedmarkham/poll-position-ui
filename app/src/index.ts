@@ -9,7 +9,6 @@ const app = document.getElementById('app');
 if (!app) throw new Error('Missing #app container');
 app.appendChild(container);
 
-
 async function main() {
   try {
     const data = await loadLatestPollData();
