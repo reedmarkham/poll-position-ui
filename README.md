@@ -1,10 +1,10 @@
 # 🏈 poll-position-ui
 
-This project deploys a UI using d3 to visualize data from [`poll-position`](`https://www.github.com/reedmarkham/poll-position) by connecting directly to its S3 bucket.
+This project deploys a dashboard web app on AWS using d3 to visualize data from [`poll-position`](`https://www.github.com/reedmarkham/poll-position) by connecting to the API it deploys serving data from S3.
 
 http://pollpo-pollp-2ndyfzh7dezn-2006059404.us-east-1.elb.amazonaws.com/
 
-Note that it does not (currently) support a truly responsive layout or mobile usage, but it should render nicely on most web browsers.
+Note that it does not (currently) support a truly responsive layout or mobile usage, but it *should* render nicely on most web browsers.
 
 ## Folder Structure
 
@@ -49,7 +49,6 @@ Ensure these secrets are configured under **Settings > Secrets and variables > A
 | `AWS_ACCOUNT_ID`      | Your AWS account ID                               |
 | `AWS_ACCESS_KEY_ID`   | AWS access key ID                                 |
 | `AWS_SECRET_ACCESS_KEY` | AWS secret access key                           |
-| `S3_BUCKET`  | AWS S3 bucket containing data |
 
 ## CI/CD
 
