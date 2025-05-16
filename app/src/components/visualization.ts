@@ -1,3 +1,4 @@
+
 import * as d3 from 'd3';
 
 export interface RawPollRow {
@@ -7,18 +8,6 @@ export interface RawPollRow {
   school: string;
   color?: string;
   logos?: string[];
-}
-
-interface TeamRank {
-  rank: number;
-  school: string;
-  color?: string;
-  logos: string[];
-}
-
-interface WeekRanking {
-  week: string;
-  polls: { ranks: TeamRank[] }[];
 }
 
 interface FlattenedTeamRank {
@@ -31,22 +20,18 @@ interface FlattenedTeamRank {
 export function renderVisualization(data: RawPollRow[], containerId: string): void {
   const groupedByWeek = d3.groups(data, d => d.week).map(([week, rows]) => ({
     week: String(week),
-    polls: [
-      {
-        ranks: rows.map(r => ({
-          rank: r.rank,
-          school: r.school,
-          color: r.color,
-          logos: r.logos ?? [],
-        })),
-      },
-    ],
+    ranks: rows.map(r => ({
+      rank: r.rank,
+      school: r.school,
+      color: r.color,
+      logos: r.logos ?? [],
+    })),
   }));
 
   renderGroupedVisualization(groupedByWeek, containerId);
 }
 
-function renderGroupedVisualization(data: WeekRanking[], containerId: string): void {
+function renderGroupedVisualization(data: { week: string, ranks: any[] }[], containerId: string): void {
   d3.select(`#${containerId}`).selectAll('*').remove();
 
   const margin = { top: 20, right: 30, bottom: 50, left: 50 };
@@ -66,14 +51,12 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
   const flattenedData = data.flatMap(week =>
-    week.polls.flatMap(poll =>
-      poll.ranks.map(team => ({
-        week: +week.week,
-        rank: team.rank,
-        school: team.school,
-        color: team.color || '#ccc',
-      }))
-    )
+    week.ranks.map(team => ({
+      week: +week.week,
+      rank: team.rank,
+      school: team.school,
+      color: team.color || '#ccc',
+    }))
   );
 
   const finalWeek = d3.max(flattenedData, d => d.week) ?? 0;
@@ -150,12 +133,12 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
     .enter()
     .append('g')
     .attr('class', 'team-point')
-    .attr('transform', d => `translate(${xScale(d.week)},${yScale(d.rank)})`);
+    .attr('transform', d => `translate(${xScale(d.week)},${yScale(d.rank ?? yMax)})`);
 
   g.append('circle')
     .attr('r', 8)
     .attr('fill', d => topSchools.includes(d.school) ? d.color : '#444')
-    .attr('opacity', d => topSchools.includes(d.school) ? 0.95 : 0.3)
+    .style('opacity', d => topSchools.includes(d.school) ? 0.95 : 0.3)
     .on('mouseover', function () {
       d3.select(this)
         .raise()
@@ -177,7 +160,7 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
     .attr('font-size', '10px')
     .attr('font-weight', 'bold')
     .attr('fill', '#fff')
-    .text(d => d.rank);
+    .text(d => d.rank ?? '');
 
   g.append('title')
     .text(d => `${d.school}: Rank ${d.rank}`);
