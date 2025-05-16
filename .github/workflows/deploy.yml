@@ -13,7 +13,7 @@ jobs:
     env:
       AWS_REGION: ${{ secrets.AWS_REGION }}
       ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-      VITE_S3_BUCKET: ${{ secrets.S3_BUCKET }}
+      VITE_API_BASE_URL: http://pollpo-pollp-7yd6ozqmio5c-1898444505.us-east-1.elb.amazonaws.com
       AWS_IAM_ARN: ${{ secrets.AWS_IAM_ARN }}
       TOOLKIT_STACK: CDKToolkit-poll-position
       STACK_NAME: PollPositionUIStack
@@ -38,8 +38,8 @@ jobs:
           node-version: '20'
 
       # --- Frontend Build ---
-      - name: Debug VITE_S3_BUCKET
-        run: echo "📦 VITE_S3_BUCKET = $VITE_S3_BUCKET"
+      - name: Debug API Base URL
+        run: echo "🌐 VITE_API_BASE_URL = $VITE_API_BASE_URL"
 
       - name: Install frontend dependencies
         working-directory: app
@@ -50,7 +50,7 @@ jobs:
         run: |
           docker build \
             --no-cache \
-            --build-arg VITE_S3_BUCKET=$VITE_S3_BUCKET \
+            --build-arg VITE_API_BASE_URL=$VITE_API_BASE_URL \
             -t $ECR_REPO \
             -f Dockerfile .
 
