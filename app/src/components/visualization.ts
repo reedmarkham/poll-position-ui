@@ -46,7 +46,12 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
   function draw(width: number, height: number) {
     g.selectAll('*').remove();
 
-    const margin = { top: 20, right: 30, bottom: 50, left: 50 };
+    const margin = {
+      top: 20,
+      right: Math.max(80, width * 0.1), // 10% of width or at least 80
+      bottom: 50,
+      left: 50
+    };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
