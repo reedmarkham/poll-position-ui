@@ -120,6 +120,7 @@ function renderGroupedVisualization(data: WeekRanking[], containerId: string): v
     .text('Rank');
 
   const lineGenerator = d3.line<FlattenedTeamRank>()
+    .defined(d => d.rank !== undefined && d.rank !== null)
     .x(d => xScale(d.week))
     .y(d => yScale(d.rank));
 

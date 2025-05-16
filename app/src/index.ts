@@ -5,7 +5,10 @@ import type { RawPollRow } from './components/visualization'; // reuse the type 
 // Create the container first
 const container = document.createElement('div');
 container.id = 'visualization-container';
-document.body.appendChild(container);
+const app = document.getElementById('app');
+if (!app) throw new Error('Missing #app container');
+app.appendChild(container);
+
 
 async function main() {
   try {

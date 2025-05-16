@@ -19,8 +19,18 @@
       text-align: center;
       font-size: 1.75rem;
       font-weight: 700;
-      padding: 1.5rem 0 1rem;
+      padding: 1.5rem 0 0.5rem;
       color: #fff;
+    }
+
+    .subheader {
+      text-align: center;
+      font-size: 1rem;
+      font-weight: 400;
+      color: #ccc;
+      padding: 0 1rem 1rem;
+      max-width: 700px;
+      margin: 0 auto;
     }
 
     #app {
@@ -53,6 +63,7 @@
 </head>
 <body>
   <header>🏈 <span style="color: #fff;">poll-position</span></header>
+  <div class="subheader">A d3 app to visualize how 2024's final AP Top 25 college football teams ranked by week</div>
   <div id="app"></div>
 
   <script type="module" src="/src/index.ts"></script>
