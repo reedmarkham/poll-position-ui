@@ -20,16 +20,11 @@ interface FlattenedTeamRank {
 function normalizeTiedRanks(data: RawPollRow[]): RawPollRow[] {
   return d3.groups(data, d => d.week).flatMap(([week, rows]) => {
     const groupedByRank = d3.groups(rows, d => d.rank).sort((a, b) => a[0] - b[0]);
-
     let visualRankCounter = 1;
-
     return groupedByRank.flatMap(([rank, ties]) => {
       const sorted = ties.sort((a, b) => a.school.localeCompare(b.school));
-
-      // Spread out tied items in Week 1 with small offsets
       const applyOffset = week === 1;
-      const offset = 0.1; // You can tune this (e.g. 0.15 for more spacing)
-
+      const offset = 0.1;
       return sorted.map((team, i) => ({
         ...team,
         visualRank: applyOffset
@@ -72,7 +67,7 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
   function draw(width: number, height: number) {
     g.selectAll('*').remove();
 
-    const margin = { top: 40, right: 60, bottom: 50, left: 50 }; 
+    const margin = { top: 40, right: 60, bottom: 50, left: 50 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
@@ -132,16 +127,48 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
       .x(d => xScale(d.week))
       .y(d => yScale(d.visualRank));
 
+    const highlightLine = g.append('path')
+      .attr('class', 'highlight-line')
+      .attr('fill', 'none')
+      .attr('stroke-width', 4)
+      .attr('stroke', '#fff')
+      .attr('opacity', 0)
+      .style('pointer-events', 'none');
+
     g.selectAll('.team-line')
+      .data(allTeams)
+      .join(
+        enter => enter.append('path')
+          .attr('class', 'team-line')
+          .attr('fill', 'none')
+          .attr('stroke-width', d => d.isTop ? 2 : 1)
+          .attr('opacity', d => d.isTop ? 0.7 : 0.3)
+          .attr('stroke', d => d.isTop ? d.color : '#444')
+          .attr('d', d => lineGenerator(d.ranks)!),
+        update => update.transition().duration(600)
+          .attr('d', d => lineGenerator(d.ranks)!),
+        exit => exit.remove()
+      );
+
+    g.selectAll('.team-line-hover')
       .data(allTeams)
       .enter()
       .append('path')
-      .attr('class', 'team-line')
+      .attr('class', 'team-line-hover')
       .attr('d', d => lineGenerator(d.ranks)!)
       .attr('fill', 'none')
-      .attr('stroke', d => d.isTop ? d.color : '#444')
-      .attr('stroke-width', d => d.isTop ? 2 : 1)
-      .attr('opacity', d => d.isTop ? 0.7 : 0.3);
+      .attr('stroke', 'transparent')
+      .attr('stroke-width', 10)
+      .style('cursor', 'pointer')
+      .on('mouseenter', function (event, d) {
+        highlightLine
+          .attr('d', lineGenerator(d.ranks)!)
+          .attr('stroke', d.color)
+          .attr('opacity', 1);
+      })
+      .on('mouseleave', function () {
+        highlightLine.attr('opacity', 0);
+      });
 
     const points = g.selectAll('.team-point')
       .data(flattenedData)
@@ -150,6 +177,14 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
       .attr('class', 'team-point')
       .attr('transform', d => `translate(${xScale(d.week)},${yScale(d.visualRank ?? yMax)})`);
 
+    points.append('circle')
+      .attr('r', 0)
+      .attr('fill', d => topSchools.includes(d.school) ? d.color : '#444')
+      .style('opacity', d => topSchools.includes(d.school) ? 0.95 : 0.3)
+      .transition()
+      .duration(600)
+      .attr('r', baseRadius);
+
     points.append('text')
       .attr('x', 0)
       .attr('y', 4)
@@ -157,16 +192,103 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
       .attr('font-size', fontSize)
       .attr('font-weight', 'bold')
       .attr('fill', '#fff')
-      .text(d => d.rank ?? '');
-
-    points.append('circle')
-      .attr('r', baseRadius)
-      .attr('fill', d => topSchools.includes(d.school) ? d.color : '#444')
-      .style('opacity', d => topSchools.includes(d.school) ? 0.95 : 0.3)
-      .lower();
+      .style('opacity', 0)
+      .text(d => d.rank ?? '')
+      .transition()
+      .duration(600)
+      .style('opacity', 1);
 
     points.append('title')
       .text(d => `${d.school}: Rank ${d.rank}`);
+
+    // === Delta label rendering with emojis and collapsed overflow ===
+    const deltaX = innerWidth + 20;
+    const maxShown = 3;
+    const finalRankMap = d3.group(
+      allTeams.map(d => {
+        const first = d.ranks[0];
+        const last = d.ranks[d.ranks.length - 1];
+        return {
+          school: d.school,
+          color: d.color,
+          visualRank: last.visualRank,
+          delta: last.rank - first.rank,
+        };
+      }),
+      d => d.visualRank
+    );
+
+    const deltaGroupHeight = fontSize * 1.4;
+    let labelData: any[] = [];
+
+    Array.from(finalRankMap.entries())
+      .sort((a, b) => a[0] - b[0])
+      .forEach(([visualRank, teams]) => {
+        teams.sort((a, b) => d3.ascending(a.delta, b.delta));
+        const shown = teams.slice(0, maxShown);
+        const hidden = teams.slice(maxShown);
+
+        shown.forEach((team, i) => {
+          labelData.push({
+            ...team,
+            visualRank,
+            yOffset: i * deltaGroupHeight,
+          });
+        });
+
+        if (hidden.length > 0) {
+          labelData.push({
+            visualRank,
+            isCollapsed: true,
+            collapsedCount: hidden.length,
+            collapsedSchools: hidden.map(t => t.school),
+            yOffset: shown.length * deltaGroupHeight,
+          });
+        }
+      });
+
+    const deltaLabels = g.selectAll('.delta-label')
+      .data(labelData)
+      .enter()
+      .append('text')
+      .attr('class', 'delta-label')
+      .attr('x', deltaX)
+      .attr('y', d => yScale(d.visualRank) + d.yOffset + 2)
+      .attr('fill', '#ccc')
+      .attr('font-size', fontSize)
+      .attr('alignment-baseline', 'middle')
+      .attr('text-anchor', 'start')
+      .text(d => {
+        if (d.isCollapsed) return `+${d.collapsedCount} more…`;
+        const symbol = d.delta > 0 ? '🔽' : d.delta < 0 ? '🔼' : '➖';
+        return `${Math.abs(d.delta)} ${symbol}`;
+      });
+
+    deltaLabels.append('title')
+      .text(d => {
+        if (d.isCollapsed) {
+          return d.collapsedSchools.join(', ');
+        }
+        if (d.delta === 0) return `${d.school} held steady since entering the 2024 AP Top 25 poll`;
+        const verb = d.delta < 0 ? 'rose' : 'fell';
+        return `${d.school} ${verb} ${Math.abs(d.delta)} place${Math.abs(d.delta) === 1 ? '' : 's'} since entering the 2024 AP Top 25 poll`;
+      });
+
+    g.append('line')
+      .attr('x1', deltaX - 10)
+      .attr('x2', deltaX - 10)
+      .attr('y1', 0)
+      .attr('y2', innerHeight)
+      .attr('stroke', '#333')
+      .attr('stroke-dasharray', '4,2');
+
+    g.append('text')
+      .attr('x', deltaX)
+      .attr('y', -10)
+      .attr('text-anchor', 'end')
+      .attr('font-size', fontSize * 0.9)
+      .attr('fill', '#888')
+      .text('Δ = Final – First Rank');
   }
 
   const resizeObserver = new ResizeObserver(entries => {
