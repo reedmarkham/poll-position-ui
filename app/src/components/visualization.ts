@@ -203,7 +203,7 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
 
     // === Delta label rendering with emojis and collapsed overflow ===
     const deltaX = innerWidth + 20;
-    const maxShown = 3;
+    const maxShown = 1;
     const finalRankMap = d3.group(
       allTeams.map(d => {
         const first = d.ranks[0];
