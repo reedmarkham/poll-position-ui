@@ -214,7 +214,7 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
     });
 
     const deltaLabels = g.selectAll('.delta-label')
-      .data(deltaData)
+      .data(deltaData, (d: any) => d.school)
       .enter()
       .append('text')
       .attr('class', 'delta-label')
