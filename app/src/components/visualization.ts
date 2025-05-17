@@ -201,65 +201,37 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
     points.append('title')
       .text(d => `${d.school}: Rank ${d.rank}`);
 
-    // === Delta label rendering with collapsed stacks ===
+    // === Delta label rendering: one per team, no collapsing ===
     const deltaX = innerWidth + 20;
     const deltaData = allTeams.map(team => {
       const first = team.ranks[0];
       const last = team.ranks[team.ranks.length - 1];
       return {
         school: team.school,
+        rank: last.rank,
         visualRank: last.visualRank,
         delta: last.rank - first.rank,
       };
     });
 
-    const deltaByRank = d3.group(deltaData, d => d.visualRank);
-    const deltaGroupHeight = fontSize * 1.4;
-    const maxPerRank = 3;
-
-    const offsetDeltaData = Array.from(deltaByRank.entries()).flatMap(([visualRank, teams]) => {
-      const shown = teams.slice(0, maxPerRank);
-      const collapsed = teams.slice(maxPerRank);
-      const results: any[] = shown.map((team, i) => ({
-        ...team,
-        visualRank,
-        yOffset: i * deltaGroupHeight,
-        isCollapsed: false,
-      }));
-      if (collapsed.length > 0) {
-        results.push({
-          visualRank,
-          yOffset: shown.length * deltaGroupHeight,
-          isCollapsed: true,
-          collapsedCount: collapsed.length,
-          collapsedSchools: collapsed.map(d => d.school),
-        });
-      }
-      return results;
-    });
-
-    const deltaLabels = g.selectAll('.delta-label')
-      .data(offsetDeltaData, (d: any) => d.school || `collapsed-${d.visualRank}`)
+    const deltaLabels = g.selectAll<SVGTextElement, typeof deltaData[0]>('.delta-label')
+      .data(deltaData, d => d.school)
       .enter()
       .append('text')
       .attr('class', 'delta-label')
       .attr('x', deltaX)
-      .attr('y', d => yScale(d.visualRank) + d.yOffset + 2)
+      .attr('y', d => yScale(d.visualRank) + 2)
       .attr('fill', '#ccc')
       .attr('font-size', fontSize)
       .attr('alignment-baseline', 'middle')
       .attr('text-anchor', 'start')
       .text(d => {
-        if (d.isCollapsed) return `+${d.collapsedCount} more…`;
         const symbol = d.delta > 0 ? '🔽' : d.delta < 0 ? '🔼' : '➖';
         return `${Math.abs(d.delta)} ${symbol}`;
       });
 
     deltaLabels.append('title')
       .text(d => {
-        if (d.isCollapsed) {
-          return `Additional teams: ${d.collapsedSchools.join(', ')}`;
-        }
         if (d.delta === 0) return `${d.school} held steady since entering the 2024 AP Top 25 poll`;
         const verb = d.delta < 0 ? 'rose' : 'fell';
         return `${d.school} ${verb} ${Math.abs(d.delta)} place${Math.abs(d.delta) === 1 ? '' : 's'} since entering the 2024 AP Top 25 poll`;
