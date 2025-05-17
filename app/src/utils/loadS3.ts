@@ -20,10 +20,11 @@ export async function loadLatestPollData(): Promise<any[]> {
       throw new Error('Expected poll data to be an array.');
     }
 
-    // ✅ Only include AP Top 25 poll results
-    const apTop25 = data.filter((d) => d.poll === "AP Top 25");
+    const apTop25Regular = data.filter(
+      (d) => d.poll === "AP Top 25" && d.seasonType === "regular"
+    );
 
-    cachedPollData = apTop25;
+    cachedPollData = apTop25Regular;
 
     const sample = cachedPollData.slice(0, 3);
     console.log('📊 Sample AP Top 25 poll data:\n', JSON.stringify(sample, null, 2));
