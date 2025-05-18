@@ -201,40 +201,45 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
     points.append('title')
       .text(d => `${d.school}: Rank ${d.rank}`);
 
+    // === Delta label rendering: 1 per team in final week ===
     const deltaX = innerWidth + 20;
-    const deltaData = allTeams.map(team => {
-      const first = team.ranks[0];
-      const last = team.ranks[team.ranks.length - 1];
+    const finalWeekData = flattenedData.filter(d => d.week === finalWeek);
+
+    const deltaData = finalWeekData.map(team => {
+      const history = grouped.get(team.school);
+      if (!history) return null;
+      const firstEntry = history.reduce((min, d) => d.week < min.week ? d : min, history[0]);
       return {
         school: team.school,
-        rank: last.rank,
-        visualRank: last.visualRank,
-        delta: last.rank - first.rank,
+        visualRank: team.visualRank,
+        delta: team.rank - firstEntry.rank,
       };
-    });
+    }).filter(Boolean);
 
     const deltaLabels = g.selectAll<SVGTextElement, typeof deltaData[0]>('.delta-label')
-      .data(deltaData, d => d.school)
+      .data(deltaData, d => d!.school)
       .enter()
       .append('text')
       .attr('class', 'delta-label')
-      .attr('x', d => deltaX + d.delta * 1.5)
-      .attr('y', d => yScale(d.rank) + 2)
+      .attr('x', deltaX + 4)  // slight horizontal offset
+      .attr('y', d => yScale(d!.visualRank) + 2)
       .attr('fill', '#ccc')
       .attr('font-size', fontSize)
       .attr('alignment-baseline', 'middle')
       .attr('text-anchor', 'start')
       .text(d => {
+        if (!d) return '';
         const symbol = d.delta > 0 ? '🔽' : d.delta < 0 ? '🔼' : '➖';
         return `${Math.abs(d.delta)} ${symbol}`;
       });
 
-   deltaLabels.append('title')
-    .text(d => {
-      if (d.delta === 0) return `${d.school} held steady since entering the 2024 AP Top 25 poll`;
-      const verb = d.delta < 0 ? 'rose' : 'fell';
-      return `${d.school} ${verb} ${Math.abs(d.delta)} place${Math.abs(d.delta) === 1 ? '' : 's'} since entering the 2024 AP Top 25 poll`;
-    });
+    deltaLabels.append('title')
+      .text(d => {
+        if (!d) return '';
+        if (d.delta === 0) return `${d.school} held steady since entering the 2024 AP Top 25 poll`;
+        const verb = d.delta < 0 ? 'rose' : 'fell';
+        return `${d.school} ${verb} ${Math.abs(d.delta)} place${Math.abs(d.delta) === 1 ? '' : 's'} since entering the 2024 AP Top 25 poll`;
+      });
 
     g.append('line')
       .attr('x1', deltaX - 10)
