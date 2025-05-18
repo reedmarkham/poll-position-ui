@@ -201,7 +201,6 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
     points.append('title')
       .text(d => `${d.school}: Rank ${d.rank}`);
 
-    // === Delta label rendering: one per team, no collapsing ===
     const deltaX = innerWidth + 20;
     const deltaData = allTeams.map(team => {
       const first = team.ranks[0];
@@ -219,8 +218,8 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
       .enter()
       .append('text')
       .attr('class', 'delta-label')
-      .attr('x', deltaX)
-      .attr('y', d => yScale(d.visualRank) + 2)
+      .attr('x', d => deltaX + d.delta * 1.5)
+      .attr('y', d => yScale(d.rank) + 2)
       .attr('fill', '#ccc')
       .attr('font-size', fontSize)
       .attr('alignment-baseline', 'middle')
@@ -230,12 +229,12 @@ function renderGroupedVisualization(data: { week: string, ranks: any[] }[], cont
         return `${Math.abs(d.delta)} ${symbol}`;
       });
 
-    deltaLabels.append('title')
-      .text(d => {
-        if (d.delta === 0) return `${d.school} held steady since entering the 2024 AP Top 25 poll`;
-        const verb = d.delta < 0 ? 'rose' : 'fell';
-        return `${d.school} ${verb} ${Math.abs(d.delta)} place${Math.abs(d.delta) === 1 ? '' : 's'} since entering the 2024 AP Top 25 poll`;
-      });
+   deltaLabels.append('title')
+    .text(d => {
+      if (d.delta === 0) return `${d.school} held steady since entering the 2024 AP Top 25 poll`;
+      const verb = d.delta < 0 ? 'rose' : 'fell';
+      return `${d.school} ${verb} ${Math.abs(d.delta)} place${Math.abs(d.delta) === 1 ? '' : 's'} since entering the 2024 AP Top 25 poll`;
+    });
 
     g.append('line')
       .attr('x1', deltaX - 10)
