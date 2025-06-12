@@ -15,6 +15,20 @@ export class PollPositionUIStack extends cdk.Stack {
       }),
     });
 
+    const commonTags = {
+      Project: 'poll-position-ui',
+      Environment: process.env.ENVIRONMENT ?? 'development',
+      Owner: 'poll-position-team',
+      CostCenter: 'engineering',
+      Application: 'poll-position-ui',
+    };
+
+    cdk.Tags.of(this).add('Project', commonTags.Project);
+    cdk.Tags.of(this).add('Environment', commonTags.Environment);
+    cdk.Tags.of(this).add('Owner', commonTags.Owner);
+    cdk.Tags.of(this).add('CostCenter', commonTags.CostCenter);
+    cdk.Tags.of(this).add('Application', commonTags.Application);
+
     const vpc = new ec2.Vpc(this, 'PollPositionUIVpc', {
       maxAzs: 2,
       natGateways: 0,
