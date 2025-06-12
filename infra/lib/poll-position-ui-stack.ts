@@ -17,20 +17,34 @@ export class PollPositionUIStack extends cdk.Stack {
 
     const vpc = new ec2.Vpc(this, 'PollPositionUIVpc', {
       maxAzs: 2,
+      natGateways: 0,
+      subnetConfiguration: [
+        {
+          cidrMask: 24,
+          name: 'Public',
+          subnetType: ec2.SubnetType.PUBLIC,
+        },
+      ],
     });
 
     const cluster = new ecs.Cluster(this, 'PollPositionUICluster', {
-      vpc,
+      vpc
     });
 
     const imageUri = `${process.env.ACCOUNT_ID}.dkr.ecr.${process.env.AWS_REGION}.amazonaws.com/poll-position-ui:latest`;
 
     const fargateService = new ecs_patterns.ApplicationLoadBalancedFargateService(this, 'PollPositionUIService', {
       cluster,
-      memoryLimitMiB: 512,
+      memoryLimitMiB: 256,
       cpu: 256,
       desiredCount: 1,
       publicLoadBalancer: true,
+      capacityProviderStrategies: [
+        {
+          capacityProvider: 'FARGATE_SPOT',
+          weight: 1,
+        },
+      ],
       taskImageOptions: {
         image: ecs.ContainerImage.fromRegistry(imageUri),
         containerPort: 3000,
@@ -54,6 +68,21 @@ export class PollPositionUIStack extends cdk.Stack {
       timeout: Duration.seconds(10),
       healthyThresholdCount: 2,
       unhealthyThresholdCount: 3,
+    });
+
+    const scalableTarget = fargateService.service.autoScaleTaskCount({
+      minCapacity: 0,
+      maxCapacity: 10,
+    });
+
+    scalableTarget.scaleOnCpuUtilization('CpuScaling', {
+      targetUtilizationPercent: 70,
+      scaleInCooldown: Duration.seconds(300),
+      scaleOutCooldown: Duration.seconds(60),
+    });
+
+    scalableTarget.scaleOnMemoryUtilization('MemoryScaling', {
+      targetUtilizationPercent: 80,
     });
   }
 }
