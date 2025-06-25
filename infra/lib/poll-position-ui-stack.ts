@@ -5,6 +5,8 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecs_patterns from 'aws-cdk-lib/aws-ecs-patterns';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as logs from 'aws-cdk-lib/aws-logs';
+import * as applicationautoscaling from 'aws-cdk-lib/aws-applicationautoscaling';
 
 export class PollPositionUIStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -66,7 +68,14 @@ export class PollPositionUIStack extends cdk.Stack {
           VITE_API_BASE_URL: process.env.VITE_API_BASE_URL ?? '',
           BUILD_TIMESTAMP: process.env.BUILD_TIMESTAMP ?? '',
         },
-        logDriver: ecs.LogDrivers.awsLogs({ streamPrefix: 'PollPositionUI' }),
+        logDriver: ecs.LogDrivers.awsLogs({ 
+          streamPrefix: 'PollPositionUI',
+          logGroup: new logs.LogGroup(this, 'PollPositionUILogGroup', {
+            logGroupName: '/ecs/poll-position-ui',
+            retention: logs.RetentionDays.ONE_WEEK,
+            removalPolicy: cdk.RemovalPolicy.DESTROY,
+          }),
+        }),
       },
     });
 
@@ -78,10 +87,10 @@ export class PollPositionUIStack extends cdk.Stack {
       path: '/',
       port: '3000',
       healthyHttpCodes: '200',
-      interval: Duration.seconds(30),
-      timeout: Duration.seconds(10),
+      interval: Duration.seconds(60),
+      timeout: Duration.seconds(15),
       healthyThresholdCount: 2,
-      unhealthyThresholdCount: 3,
+      unhealthyThresholdCount: 5,
     });
 
     const scalableTarget = fargateService.service.autoScaleTaskCount({
@@ -90,13 +99,39 @@ export class PollPositionUIStack extends cdk.Stack {
     });
 
     scalableTarget.scaleOnCpuUtilization('CpuScaling', {
-      targetUtilizationPercent: 70,
-      scaleInCooldown: Duration.seconds(300),
-      scaleOutCooldown: Duration.seconds(60),
+      targetUtilizationPercent: 60,
+      scaleInCooldown: Duration.seconds(600),
+      scaleOutCooldown: Duration.seconds(180),
     });
 
     scalableTarget.scaleOnMemoryUtilization('MemoryScaling', {
-      targetUtilizationPercent: 80,
+      targetUtilizationPercent: 70,
+      scaleInCooldown: Duration.seconds(600),
+      scaleOutCooldown: Duration.seconds(180),
+    });
+
+    scalableTarget.scaleOnSchedule('ScaleDownNightly', {
+      schedule: applicationautoscaling.Schedule.cron({
+        minute: '0',
+        hour: '2',
+        day: '*',
+        month: '*',
+        year: '*',
+      }),
+      minCapacity: 0,
+      maxCapacity: 0,
+    });
+
+    scalableTarget.scaleOnSchedule('ScaleUpMorning', {
+      schedule: applicationautoscaling.Schedule.cron({
+        minute: '0',
+        hour: '8',
+        day: '*',
+        month: '*',
+        year: '*',
+      }),
+      minCapacity: 0,
+      maxCapacity: 10,
     });
   }
 }
