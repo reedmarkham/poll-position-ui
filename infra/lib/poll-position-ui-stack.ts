@@ -32,6 +32,7 @@ export class PollPositionUIStack extends cdk.Stack {
     cdk.Tags.of(this).add('Application', commonTags.Application);
 
     const vpc = new ec2.Vpc(this, 'PollPositionUIVpc', {
+      ipAddresses: ec2.IpAddresses.cidr('10.1.0.0/16'),
       maxAzs: 2,
       natGateways: 0,
       subnetConfiguration: [
