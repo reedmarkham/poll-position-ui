@@ -52,7 +52,7 @@ export class PollPositionUIStack extends cdk.Stack {
 
     const fargateService = new ecs_patterns.ApplicationLoadBalancedFargateService(this, 'PollPositionUIService', {
       cluster,
-      memoryLimitMiB: 256,
+      memoryLimitMiB: 512,
       cpu: 256,
       desiredCount: 1,
       publicLoadBalancer: true,
