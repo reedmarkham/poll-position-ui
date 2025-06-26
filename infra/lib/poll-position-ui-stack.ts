@@ -35,6 +35,7 @@ export class PollPositionUIStack extends cdk.Stack {
       ipAddresses: ec2.IpAddresses.cidr('10.1.0.0/16'),
       maxAzs: 2,
       natGateways: 0,
+      restrictDefaultSecurityGroup: false,
       subnetConfiguration: [
         {
           cidrMask: 24,
